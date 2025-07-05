@@ -26,6 +26,8 @@
         .message-text { word-break: break-word; white-space: pre-wrap; }
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #09f; animation: spin 1s ease infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .message-row:hover .reply-button { opacity: 1; }
+        .reply-button { opacity: 0; transition: opacity 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen md:p-4">
@@ -100,6 +102,11 @@
 
             <!-- Message Input Form -->
             <footer class="bg-white p-2 md:p-4 border-t border-gray-200">
+                <div id="replying-to-banner" class="hidden p-2 mb-2 bg-gray-200 rounded-lg text-sm relative">
+                    <p class="font-bold text-gray-600">Replying to <span id="replying-to-name"></span></p>
+                    <p id="replying-to-text" class="text-gray-500 truncate italic"></p>
+                    <button id="cancel-reply-button" class="absolute top-1 right-1 p-1 text-gray-500 hover:text-gray-800">&times;</button>
+                </div>
                 <form id="message-form" class="flex items-center space-x-2 md:space-x-3">
                     <input id="message-input" type="text" placeholder="Type your message..." autocomplete="off" class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     <select id="timer-select" class="p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -151,6 +158,7 @@
         let messageCheckerInterval = null;
         let messageCount = 0;
         let unreadCount = 0;
+        let replyingToMessage = null;
         const originalTitle = document.title;
 
         // --- DOM ELEMENTS CACHE ---
@@ -179,7 +187,12 @@
             editUserNameButton: document.getElementById('edit-user-name-button'),
             manageRequestsButton: document.getElementById('manage-requests-button'),
             requestsCount: document.getElementById('requests-count'),
-            favicon: document.getElementById('favicon')
+            favicon: document.getElementById('favicon'),
+            replyingToBanner: document.getElementById('replying-to-banner'),
+            replyingToName: document.getElementById('replying-to-name'),
+            replyingToText: document.getElementById('replying-to-text'),
+            cancelReplyButton: document.getElementById('cancel-reply-button'),
+            messageInput: document.getElementById('message-input'),
         };
         
         // --- FAVICON NOTIFICATION ---
@@ -234,9 +247,9 @@
             }
         }
 
-        function showNotification(title, body) {
+        function showNotification(title) {
             if (Notification.permission === "granted" && document.hidden) {
-                new Notification(title, { body: body, icon: '/favicon.ico' });
+                new Notification(title, { body: "You have a new message.", icon: '/favicon.ico' });
             }
         }
 
@@ -391,7 +404,7 @@
                            unreadCount++;
                            dom.favicon.href = newMesageFavicon;
                            document.title = `(${unreadCount}) ${originalTitle}`;
-                           showNotification(message.displayName, message.text);
+                           showNotification(message.displayName);
                         }
                     }
                 });
@@ -429,22 +442,43 @@
             const expiresAt = message.expiresAt ? `data-expires-at="${message.expiresAt.toDate().toISOString()}"` : '';
 
             const avatarHTML = `<img src="${message.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=U'}" alt="Avatar" class="w-8 h-8 rounded-full shadow-md shrink-0">`;
+            
+            let replyHTML = '';
+            if (message.replyTo) {
+                replyHTML = `
+                    <div class="border-l-2 ${isCurrentUser ? 'border-blue-300' : 'border-gray-400'} pl-2 mb-2 opacity-80">
+                        <p class="text-xs font-bold">${message.replyTo.sender}</p>
+                        <p class="text-xs italic truncate">${message.replyTo.text}</p>
+                    </div>`;
+            }
+
             const messageHTML = `
                 <div class="p-3 rounded-xl shadow ${bubbleColor}">
+                    ${replyHTML}
                     <p class="text-xs font-bold mb-1 sender-name ${nameColor}">${message.displayName}</p>
                     <p class="text-sm message-text">${message.text}</p>
                     <p class="text-xs text-gray-400 mt-1 text-right">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString('en-US') : 'Sending...'}</p>
                     ${message.expiresAt ? `<p class="text-xs italic mt-1 text-right ${timerColor}">⏱️ Will disappear...</p>` : ''}
                 </div>`;
 
+            const replyButtonHTML = `<button class="reply-button p-1" data-message-id="${id}" data-sender="${message.displayName}" data-text="${message.text}">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg>
+            </button>`;
+
             const contentBlock = isCurrentUser ? messageHTML + avatarHTML : avatarHTML + messageHTML;
+            const finalBlock = isCurrentUser ? replyButtonHTML + contentBlock : contentBlock + replyButtonHTML;
 
             return `
                 <div class="flex w-full message-row ${alignClass}" id="msg-${id}" data-uid="${message.uid}" ${expiresAt}>
                     <div class="flex items-end gap-2 max-w-[85%]">
-                        ${contentBlock}
+                        ${finalBlock}
                     </div>
                 </div>`;
+        }
+        
+        function cancelReply() {
+            replyingToMessage = null;
+            dom.replyingToBanner.classList.add('hidden');
         }
 
         // --- INITIALIZE APP ---
@@ -475,19 +509,29 @@
                 modal.classList.remove('hidden');
             });
 
-            // Delegated event listener for dynamic room list buttons
+            // Delegated event listener for dynamic buttons
             document.addEventListener('click', e => {
-                if (e.target.matches('.enter-room-btn')) enterRoom(e.target.dataset.id);
-                if (e.target.matches('.request-join-btn')) {
-                    const roomId = e.target.dataset.id;
+                if (e.target.closest('.enter-room-btn')) enterRoom(e.target.closest('.enter-room-btn').dataset.id);
+                if (e.target.closest('.request-join-btn')) {
+                    const roomId = e.target.closest('.request-join-btn').dataset.id;
                     const roomRef = doc(db, 'rooms', roomId);
                     const request = { uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL };
                     updateDoc(roomRef, { pendingRequests: arrayUnion(request) });
                 }
-                if (e.target.matches('.delete-room-btn')) {
-                    const roomId = e.target.dataset.id;
-                    const roomName = e.target.dataset.name;
-                    showDeleteRoomConfirmation(roomId, roomName);
+                if (e.target.closest('.delete-room-btn')) {
+                    const btn = e.target.closest('.delete-room-btn');
+                    showDeleteRoomConfirmation(btn.dataset.id, btn.dataset.name);
+                }
+                if (e.target.closest('.reply-button')) {
+                    const btn = e.target.closest('.reply-button');
+                    replyingToMessage = {
+                        sender: btn.dataset.sender,
+                        text: btn.dataset.text
+                    };
+                    dom.replyingToName.textContent = replyingToMessage.sender;
+                    dom.replyingToText.textContent = replyingToMessage.text;
+                    dom.replyingToBanner.classList.remove('hidden');
+                    dom.messageInput.focus();
                 }
             });
 
@@ -573,19 +617,24 @@
             
             dom.messageForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const text = dom.messageForm.querySelector('#message-input').value.trim();
+                const text = dom.messageInput.value.trim();
                 if (!text || !currentRoomId) return;
                 
                 const messagesCol = collection(db, 'rooms', currentRoomId, 'messages');
-                await addDoc(messagesCol, {
+                const messageData = {
                     uid: currentUser.uid,
                     displayName: currentUser.displayName,
                     photoURL: currentUser.photoURL,
                     text: text,
                     createdAt: serverTimestamp(),
-                    expiresAt: parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null
-                });
-                dom.messageForm.querySelector('#message-input').value = '';
+                    expiresAt: parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null,
+                    replyTo: replyingToMessage // Add reply data if it exists
+                };
+
+                await addDoc(messagesCol, messageData);
+                
+                dom.messageInput.value = '';
+                cancelReply(); // Clear reply state after sending
                 dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
             });
             
@@ -607,6 +656,8 @@
                     document.title = originalTitle;
                 }
             });
+
+            dom.cancelReplyButton.addEventListener('click', cancelReply);
         }
 
         initApp();
