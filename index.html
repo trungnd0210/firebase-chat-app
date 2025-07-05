@@ -1,8 +1,572 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Room Chat App</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a nice font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+        .scrollable-content::-webkit-scrollbar { width: 8px; }
+        .scrollable-content::-webkit-scrollbar-track { background: #f1f1f1; }
+        .scrollable-content::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .scrollable-content::-webkit-scrollbar-thumb:hover { background: #555; }
+        .message-row.fading-out { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; }
+        #app-container { resize: both; overflow: auto; min-width: 320px; min-height: 500px; }
+        .message-text { word-break: break-word; white-space: pre-wrap; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #09f; animation: spin 1s ease infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen md:p-4">
+
+    <div id="app-container" class="w-full h-full md:w-4/5 md:h-5/6 md:max-w-5xl shadow-2xl rounded-lg flex flex-col bg-white">
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="flex flex-col items-center justify-center h-full bg-white rounded-lg p-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Welcome to the Chat App!</h1>
+            <p class="text-gray-600 mb-8">Sign in to start chatting with everyone.</p>
+            <button id="login-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md flex items-center justify-center transition duration-300 w-64">
+                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.75 8.36,4.73 12.19,4.73C14.03,4.73 15.6,5.36 16.81,6.45L18.83,4.55C17.02,2.77 14.81,2 12.19,2C6.42,2 2.03,6.8 2.03,12C2.03,17.2 6.42,22 12.19,22C17.6,22 21.54,18.33 21.54,12.29C21.54,11.8 21.48,11.45 21.35,11.1Z"/></svg>
+                <span>Sign in with Google</span>
+            </button>
+        </div>
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="hidden flex-col items-center justify-center h-full bg-white rounded-lg p-8 text-center">
+            <div class="spinner"></div>
+            <p class="text-gray-600 mt-4">Loading...</p>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="hidden flex-1 flex-col bg-gray-50 rounded-lg">
+            <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center shadow-sm">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Chat Rooms</h1>
+                <div class="flex items-center gap-4">
+                    <span id="lobby-user-name" class="font-semibold text-gray-700 hidden md:block"></span>
+                    <button id="create-room-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm md:text-base">Create Room</button>
+                    <button id="lobby-logout-button" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg text-sm">Logout</button>
+                </div>
+            </header>
+            <main id="room-list-container" class="flex-1 p-4 overflow-y-auto space-y-3 scrollable-content"></main>
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chat-screen" class="hidden flex-1 flex-col bg-gray-50 rounded-lg">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 p-3 md:p-4 flex justify-between items-center shadow-sm">
+                <div class="flex items-center flex-1 min-w-0">
+                    <button id="back-to-lobby-button" class="mr-2 md:mr-4 p-2 rounded-full hover:bg-gray-200 transition">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </button>
+                    <div class="flex items-center min-w-0">
+                        <h1 id="room-name" class="text-lg md:text-xl font-bold text-gray-800 mr-2 truncate"></h1>
+                        <button id="edit-room-name-button" class="p-1 rounded-full hover:bg-gray-200 transition shrink-0">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg>
+                        </button>
+                    </div>
+                    <button id="manage-requests-button" class="hidden ml-2 md:ml-4 bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-2 md:px-3 rounded-full flex items-center gap-2 shrink-0">
+                        <span class="hidden md:inline">Manage Requests</span>
+                        <span class="md:hidden">Reqs</span>
+                        <span id="requests-count" class="bg-indigo-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">0</span>
+                    </button>
+                </div>
+                <div class="flex items-center shrink-0">
+                    <span id="user-name" class="hidden md:inline font-semibold text-gray-700 mr-2"></span>
+                    <img id="user-avatar" class="w-10 h-10 rounded-full border-2 border-blue-500" src="" alt="Avatar">
+                    <button id="edit-user-name-button" class="p-1 rounded-full hover:bg-gray-200 transition shrink-0 ml-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Messages Container Wrapper -->
+            <div class="flex-1 relative">
+                <main id="messages-container" class="absolute inset-0 p-4 overflow-y-auto space-y-4 scrollable-content"></main>
+                <button id="new-message-button" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-5 rounded-full shadow-lg transition animate-bounce z-10">
+                    ↓ New Messages
+                </button>
+            </div>
+
+            <!-- Message Input Form -->
+            <footer class="bg-white p-2 md:p-4 border-t border-gray-200">
+                <form id="message-form" class="flex items-center space-x-2 md:space-x-3">
+                    <input id="message-input" type="text" placeholder="Type your message..." autocomplete="off" class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <select id="timer-select" class="p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="0">Never</option>
+                        <option value="5000">5s</option>
+                        <option value="30000">30s</option>
+                        <option value="60000">1m</option>
+                    </select>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg shadow-md transition duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, Timestamp, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, writeBatch, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6hlFCJlc6hhQKYWLWNAahO6N3GovNS4M",
+            authDomain: "temp-chat-bce85.firebaseapp.com",
+            projectId: "temp-chat-bce85",
+            storageBucket: "temp-chat-bce85.appspot.com",
+            messagingSenderId: "166577116690",
+            appId: "1:166577116690:web:ab33d857acfbf03dca6acb"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        setLogLevel('debug');
+
+        // --- GLOBAL STATE ---
+        let currentUser = null;
+        let currentRoomId = null;
+        let unsubscribeMessages = null;
+        let unsubscribeRoom = null;
+        let unsubscribeRoomsList = null;
+        let messageCheckerInterval = null;
+        let messageCount = 0;
+
+        // --- DOM ELEMENTS CACHE ---
+        const dom = {
+            screens: {
+                login: document.getElementById('login-screen'),
+                loading: document.getElementById('loading-screen'),
+                lobby: document.getElementById('lobby-screen'),
+                chat: document.getElementById('chat-screen'),
+            },
+            loginButton: document.getElementById('login-button'),
+            lobbyLogoutButton: document.getElementById('lobby-logout-button'),
+            messageForm: document.getElementById('message-form'),
+            messagesContainer: document.getElementById('messages-container'),
+            userAvatar: document.getElementById('user-avatar'),
+            userName: document.getElementById('user-name'),
+            lobbyUserName: document.getElementById('lobby-user-name'),
+            timerSelect: document.getElementById('timer-select'),
+            roomNameElement: document.getElementById('room-name'),
+            newMessageButton: document.getElementById('new-message-button'),
+            modalContainer: document.getElementById('modal-container'),
+            roomListContainer: document.getElementById('room-list-container'),
+            createRoomButton: document.getElementById('create-room-button'),
+            backToLobbyButton: document.getElementById('back-to-lobby-button'),
+            editUserNameButton: document.getElementById('edit-user-name-button'),
+            editRoomNameButton: document.getElementById('edit-room-name-button'),
+            manageRequestsButton: document.getElementById('manage-requests-button'),
+            requestsCount: document.getElementById('requests-count')
+        };
+        
+
+        // --- UTILITY FUNCTIONS ---
+        function showScreen(screenName) {
+            Object.values(dom.screens).forEach(screen => screen.classList.add('hidden'));
+            dom.screens[screenName].classList.remove('hidden');
+            dom.screens[screenName].classList.add('flex');
+        }
+
+        function createModal(id, title, content, saveButtonText = 'Save') {
+            const existingModal = document.getElementById(id);
+            if(existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = id;
+            modal.className = "hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+            modal.innerHTML = `
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-sm">
+                    <h2 class="text-xl md:text-2xl font-bold mb-4">${title}</h2>
+                    ${content}
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button class="modal-cancel bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                        <button class="modal-save bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">${saveButtonText}</button>
+                    </div>
+                </div>`;
+            dom.modalContainer.appendChild(modal);
+            modal.querySelector('.modal-cancel').addEventListener('click', () => modal.remove());
+            return modal;
+        }
+        
+        function cleanupListeners() {
+            if (unsubscribeRoomsList) unsubscribeRoomsList();
+            if (unsubscribeRoom) unsubscribeRoom();
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (messageCheckerInterval) clearInterval(messageCheckerInterval);
+            unsubscribeRoomsList = null;
+            unsubscribeRoom = null;
+            unsubscribeMessages = null;
+            messageCheckerInterval = null;
+        }
+
+        // --- AUTHENTICATION ---
+        const provider = new GoogleAuthProvider();
+        onAuthStateChanged(auth, (user) => {
+            cleanupListeners();
+            if (user) {
+                currentUser = user;
+                showLobby();
+            } else {
+                currentUser = null;
+                dom.modalContainer.innerHTML = ''; 
+                showScreen('login');
+            }
+        });
+
+        // --- LOBBY LOGIC ---
+        function showLobby() {
+            currentRoomId = null;
+            showScreen('lobby');
+            cleanupListeners();
+            
+            dom.lobbyUserName.textContent = currentUser.displayName;
+
+            const roomsQuery = query(collection(db, 'rooms'), orderBy('name'));
+            unsubscribeRoomsList = onSnapshot(roomsQuery, (snapshot) => {
+                let html = '';
+                snapshot.forEach(doc => {
+                    const room = doc.data();
+                    const id = doc.id;
+                    const isAdmin = room.admin === currentUser.uid;
+                    const isMember = Array.isArray(room.members) && room.members.includes(currentUser.uid);
+                    const isPending = Array.isArray(room.pendingRequests) && room.pendingRequests.some(req => req.uid === currentUser.uid);
+
+                    let actionButtons = '';
+                    if (isAdmin || isMember) {
+                        actionButtons += `<button class="enter-room-btn bg-blue-500 text-white px-3 py-2 rounded-lg text-sm" data-id="${id}">Enter</button>`;
+                    } else if (isPending) {
+                        actionButtons += `<button class="bg-yellow-400 text-white px-3 py-2 rounded-lg cursor-not-allowed text-sm" disabled>Pending</button>`;
+                    } else {
+                        actionButtons += `<button class="request-join-btn bg-green-500 text-white px-3 py-2 rounded-lg text-sm" data-id="${id}">Request</button>`;
+                    }
+
+                    if (isAdmin) {
+                         actionButtons += `<button class="delete-room-btn bg-red-600 text-white px-3 py-2 rounded-lg ml-2 text-sm" data-id="${id}" data-name="${room.name}">Delete</button>`;
+                    }
+
+                    html += `
+                        <div class="bg-white p-3 rounded-lg shadow flex justify-between items-center">
+                            <h3 class="text-base md:text-lg font-semibold truncate pr-2">${room.name}</h3>
+                            <div class="flex gap-2 shrink-0">${actionButtons}</div>
+                        </div>`;
+                });
+                dom.roomListContainer.innerHTML = html;
+            });
+        }
+
+        // --- ROOM MANAGEMENT ---
+        async function deleteRoom(roomId) {
+            const messagesRef = collection(db, 'rooms', roomId, 'messages');
+            const messagesSnapshot = await getDocs(messagesRef);
+            
+            const batch = writeBatch(db);
+            messagesSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            const roomRef = doc(db, 'rooms', roomId);
+            await deleteDoc(roomRef);
+        }
+
+        function showDeleteRoomConfirmation(roomId, roomName) {
+            const content = `
+                <p class="text-gray-600 mb-4 text-sm">This action cannot be undone. This will permanently delete the <strong>${roomName}</strong> room and all its messages.</p>
+                <p class="text-gray-600 mb-4 text-sm">Please type the name of the room to confirm.</p>
+                <input id="delete-confirm-input" type="text" placeholder="${roomName}" class="w-full p-3 border border-gray-300 rounded-lg">
+            `;
+            const modal = createModal('delete-room-modal', 'Are you absolutely sure?', content, 'Delete Forever');
+            const saveButton = modal.querySelector('.modal-save');
+            const confirmInput = modal.querySelector('#delete-confirm-input');
+            
+            saveButton.disabled = true;
+            saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+            saveButton.classList.replace('bg-blue-600', 'bg-red-600');
+            saveButton.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+
+            confirmInput.addEventListener('input', () => {
+                if (confirmInput.value === roomName) {
+                    saveButton.disabled = false;
+                    saveButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    saveButton.disabled = true;
+                    saveButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            });
+
+            saveButton.addEventListener('click', async () => {
+                if (confirmInput.value === roomName) {
+                    await deleteRoom(roomId);
+                }
+                modal.remove();
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function enterRoom(roomId) {
+            currentRoomId = roomId;
+            showScreen('chat');
+            cleanupListeners(); // Clean up all listeners before entering room
+
+            const roomRef = doc(db, 'rooms', currentRoomId);
+            unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    showLobby(); 
+                    return;
+                }
+                const roomData = docSnap.data();
+                const isAdmin = roomData.admin === currentUser.uid;
+                
+                dom.roomNameElement.textContent = roomData.name;
+                dom.userAvatar.src = currentUser.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=U';
+                dom.userName.textContent = currentUser.displayName || 'Anonymous User';
+
+                if (isAdmin) {
+                    dom.manageRequestsButton.classList.remove('hidden');
+                    dom.editRoomNameButton.classList.remove('hidden');
+                    dom.requestsCount.textContent = (roomData.pendingRequests || []).length;
+                } else {
+                    dom.manageRequestsButton.classList.add('hidden');
+                    dom.editRoomNameButton.classList.add('hidden');
+                }
+            });
+
+            listenForMessages(roomId);
+            messageCheckerInterval = setInterval(() => checkExpiredMessages(roomId), 1000);
+        }
+
+        // --- MESSAGES LOGIC ---
+        function listenForMessages(roomId) {
+            const messagesCol = collection(db, 'rooms', roomId, 'messages');
+            const q = query(messagesCol, orderBy("createdAt", "desc"), limit(50));
+            unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
+                const shouldScroll = dom.messagesContainer.scrollHeight - dom.messagesContainer.clientHeight <= dom.messagesContainer.scrollTop + 150;
+                
+                const messages = querySnapshot.docs.map(doc => renderMessage(doc.data(), doc.id)).reverse();
+                dom.messagesContainer.innerHTML = messages.join('');
+
+                if (shouldScroll) {
+                    dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+                    dom.newMessageButton.classList.add('hidden');
+                } else if (querySnapshot.size > messageCount && messageCount > 0) {
+                    dom.newMessageButton.classList.remove('hidden');
+                }
+                messageCount = querySnapshot.size;
+            });
+        }
+
+        function checkExpiredMessages(roomId) {
+            document.querySelectorAll('.message-row[data-expires-at]').forEach(el => {
+                if (new Date() > new Date(el.dataset.expiresAt)) {
+                    el.classList.add('fading-out');
+                    setTimeout(() => el.remove(), 300);
+                    const msgId = el.id.replace('msg-', '');
+                    deleteDoc(doc(db, 'rooms', roomId, 'messages', msgId)).catch(console.error);
+                }
+            });
+        }
+
+        function renderMessage(message, id) {
+            const isCurrentUser = message.uid === currentUser.uid;
+            const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
+            const bubbleColor = isCurrentUser ? 'bg-blue-500 text-white' : 'bg-white text-gray-800';
+            const nameColor = isCurrentUser ? 'text-blue-100' : 'text-gray-500';
+            const timerColor = isCurrentUser ? 'text-blue-200' : 'text-gray-400';
+            const expiresAt = message.expiresAt ? `data-expires-at="${message.expiresAt.toDate().toISOString()}"` : '';
+
+            const avatarHTML = `<img src="${message.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=U'}" alt="Avatar" class="w-8 h-8 rounded-full shadow-md shrink-0">`;
+            const messageHTML = `
+                <div class="p-3 rounded-xl shadow ${bubbleColor}">
+                    <p class="text-xs font-bold mb-1 sender-name ${nameColor}">${message.displayName}</p>
+                    <p class="text-sm message-text">${message.text}</p>
+                    <p class="text-xs text-gray-400 mt-1 text-right">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString('en-US') : 'Sending...'}</p>
+                    ${message.expiresAt ? `<p class="text-xs italic mt-1 text-right ${timerColor}">⏱️ Will disappear...</p>` : ''}
+                </div>`;
+
+            const contentBlock = isCurrentUser ? messageHTML + avatarHTML : avatarHTML + messageHTML;
+
+            return `
+                <div class="flex w-full message-row ${alignClass}" id="msg-${id}" data-uid="${message.uid}" ${expiresAt}>
+                    <div class="flex items-end gap-2 max-w-[85%]">
+                        ${contentBlock}
+                    </div>
+                </div>`;
+        }
+
+        // --- INITIALIZE APP ---
+        function initApp() {
+            // Static listeners that are always active
+            dom.loginButton.addEventListener('click', () => signInWithPopup(auth, provider).catch(console.error));
+            dom.lobbyLogoutButton.addEventListener('click', () => signOut(auth).catch(console.error));
+            dom.backToLobbyButton.addEventListener('click', showLobby);
+
+            dom.createRoomButton.addEventListener('click', () => {
+                const modal = createModal('create-room-modal', 'Create New Room', 
+                    `<input id="new-room-name-input" type="text" placeholder="Enter room name" class="w-full p-3 border border-gray-300 rounded-lg">`
+                );
+                modal.querySelector('.modal-save').addEventListener('click', async () => {
+                    const roomName = modal.querySelector('#new-room-name-input').value.trim();
+                    modal.remove();
+                    if (roomName) {
+                        const newRoomRef = doc(collection(db, 'rooms'));
+                        await setDoc(newRoomRef, {
+                            name: roomName,
+                            admin: currentUser.uid,
+                            members: [currentUser.uid],
+                            pendingRequests: []
+                        });
+                        enterRoom(newRoomRef.id);
+                    }
+                });
+                modal.classList.remove('hidden');
+            });
+
+            // Delegated event listener for dynamic room list buttons
+            document.addEventListener('click', e => {
+                if (e.target.matches('.enter-room-btn')) enterRoom(e.target.dataset.id);
+                if (e.target.matches('.request-join-btn')) {
+                    const roomId = e.target.dataset.id;
+                    const roomRef = doc(db, 'rooms', roomId);
+                    const request = { uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL };
+                    updateDoc(roomRef, { pendingRequests: arrayUnion(request) });
+                }
+                if (e.target.matches('.delete-room-btn')) {
+                    const roomId = e.target.dataset.id;
+                    const roomName = e.target.dataset.name;
+                    showDeleteRoomConfirmation(roomId, roomName);
+                }
+            });
+
+            // Listeners for the chat screen
+            dom.editRoomNameButton.addEventListener('click', () => {
+                 const modal = createModal('room-name-modal', 'Change Room Name', 
+                    `<input id="new-room-name-input" type="text" value="${dom.roomNameElement.textContent}" class="w-full p-3 border border-gray-300 rounded-lg">`
+                );
+                modal.querySelector('.modal-save').addEventListener('click', async () => {
+                    const newName = modal.querySelector('#new-room-name-input').value.trim();
+                    if (newName && currentRoomId) {
+                        const roomRef = doc(db, 'rooms', currentRoomId);
+                        await updateDoc(roomRef, { name: newName });
+                    }
+                    modal.remove();
+                });
+                modal.classList.remove('hidden');
+            });
+
+            dom.editUserNameButton.addEventListener('click', () => {
+                const modal = createModal('user-name-modal', 'Change Display Name', 
+                    `<input id="new-user-name-input" type="text" value="${currentUser.displayName}" class="w-full p-3 border border-gray-300 rounded-lg">`
+                );
+                modal.querySelector('.modal-save').addEventListener('click', async () => {
+                     const newName = modal.querySelector('#new-user-name-input').value.trim();
+                    if (newName && newName !== currentUser.displayName) {
+                        await updateProfile(currentUser, { displayName: newName });
+                    }
+                    modal.remove();
+                });
+                modal.classList.remove('hidden');
+            });
+
+            dom.manageRequestsButton.addEventListener('click', async () => {
+                const roomRef = doc(db, 'rooms', currentRoomId);
+                const roomSnap = await getDoc(roomRef);
+                const requests = roomSnap.data().pendingRequests || [];
+
+                let requestsHTML = '<div class="space-y-4 max-h-96 overflow-y-auto scrollable-content">';
+                if (requests.length === 0) {
+                    requestsHTML += `<p class="text-gray-500">No pending requests.</p>`;
+                } else {
+                    requests.forEach(req => {
+                        requestsHTML += `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <img src="${req.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=U'}" class="w-10 h-10 rounded-full">
+                                    <span class="text-sm">${req.displayName}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="approve-request-btn bg-green-500 text-white px-2 py-1 rounded-lg text-xs" data-uid="${req.uid}">Approve</button>
+                                    <button class="deny-request-btn bg-red-500 text-white px-2 py-1 rounded-lg text-xs" data-uid="${req.uid}">Deny</button>
+                                </div>
+                            </div>`;
+                    });
+                }
+                requestsHTML += '</div>';
+                
+                const modal = createModal('requests-modal', 'Membership Requests', requestsHTML);
+                modal.querySelector('.modal-save').style.display = 'none';
+                modal.classList.remove('hidden');
+
+                modal.querySelectorAll('.approve-request-btn, .deny-request-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const uid = e.target.dataset.uid;
+                        const isApproved = e.target.classList.contains('approve-request-btn');
+                        const roomRef = doc(db, 'rooms', currentRoomId);
+                        const roomSnap = await getDoc(roomRef);
+                        const pendingRequests = roomSnap.data().pendingRequests || [];
+                        const requestData = pendingRequests.find(r => r.uid === uid);
+                        
+                        if (requestData) {
+                            const updates = { pendingRequests: arrayRemove(requestData) };
+                            if (isApproved) {
+                                updates.members = arrayUnion(uid);
+                            }
+                            await updateDoc(roomRef, updates);
+                        }
+                        modal.remove();
+                    });
+                });
+            });
+            
+            dom.messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = dom.messageForm.querySelector('#message-input').value.trim();
+                if (!text || !currentRoomId) return;
+                
+                const messagesCol = collection(db, 'rooms', currentRoomId, 'messages');
+                await addDoc(messagesCol, {
+                    uid: currentUser.uid,
+                    displayName: currentUser.displayName,
+                    photoURL: currentUser.photoURL,
+                    text: text,
+                    createdAt: serverTimestamp(),
+                    expiresAt: parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null
+                });
+                dom.messageForm.querySelector('#message-input').value = '';
+                dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+            });
+            
+            dom.newMessageButton.addEventListener('click', () => {
+                dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+                dom.newMessageButton.classList.add('hidden');
+            });
+
+            dom.messagesContainer.addEventListener('scroll', () => {
+                if (dom.messagesContainer.scrollHeight - dom.messagesContainer.clientHeight <= dom.messagesContainer.scrollTop + 10) {
+                    dom.newMessageButton.classList.add('hidden');
+                }
+            });
+        }
+
+        initApp();
+
+    </script>
+</body>
+</html>
