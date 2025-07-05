@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%234299E1%22/></svg>">
     <!-- Custom Styles -->
     <style>
         body {
@@ -148,6 +150,8 @@
         let unsubscribeRoomsList = null;
         let messageCheckerInterval = null;
         let messageCount = 0;
+        let unreadCount = 0;
+        const originalTitle = document.title;
 
         // --- DOM ELEMENTS CACHE ---
         const dom = {
@@ -171,12 +175,16 @@
             roomListContainer: document.getElementById('room-list-container'),
             createRoomButton: document.getElementById('create-room-button'),
             backToLobbyButton: document.getElementById('back-to-lobby-button'),
-            editUserNameButton: document.getElementById('edit-user-name-button'),
             editRoomNameButton: document.getElementById('edit-room-name-button'),
+            editUserNameButton: document.getElementById('edit-user-name-button'),
             manageRequestsButton: document.getElementById('manage-requests-button'),
-            requestsCount: document.getElementById('requests-count')
+            requestsCount: document.getElementById('requests-count'),
+            favicon: document.getElementById('favicon')
         };
         
+        // --- FAVICON NOTIFICATION ---
+        const defaultFavicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%234299E1%22/></svg>";
+        const newMesageFavicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23F56565%22/></svg>";
 
         // --- UTILITY FUNCTIONS ---
         function showScreen(screenName) {
@@ -215,6 +223,21 @@
             unsubscribeRoom = null;
             unsubscribeMessages = null;
             messageCheckerInterval = null;
+        }
+
+        // --- NOTIFICATION LOGIC ---
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                console.log("This browser does not support desktop notification");
+            } else if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        function showNotification(title, body) {
+            if (Notification.permission === "granted" && document.hidden) {
+                new Notification(title, { body: body, icon: '/favicon.ico' });
+            }
         }
 
         // --- AUTHENTICATION ---
@@ -324,7 +347,8 @@
         function enterRoom(roomId) {
             currentRoomId = roomId;
             showScreen('chat');
-            cleanupListeners(); // Clean up all listeners before entering room
+            cleanupListeners(); 
+            requestNotificationPermission();
 
             const roomRef = doc(db, 'rooms', currentRoomId);
             unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
@@ -360,6 +384,18 @@
             unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
                 const shouldScroll = dom.messagesContainer.scrollHeight - dom.messagesContainer.clientHeight <= dom.messagesContainer.scrollTop + 150;
                 
+                querySnapshot.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const message = change.doc.data();
+                        if (message.uid !== currentUser.uid && message.createdAt && document.hidden) {
+                           unreadCount++;
+                           dom.favicon.href = newMesageFavicon;
+                           document.title = `(${unreadCount}) ${originalTitle}`;
+                           showNotification(message.displayName, message.text);
+                        }
+                    }
+                });
+
                 const messages = querySnapshot.docs.map(doc => renderMessage(doc.data(), doc.id)).reverse();
                 dom.messagesContainer.innerHTML = messages.join('');
 
@@ -561,6 +597,14 @@
             dom.messagesContainer.addEventListener('scroll', () => {
                 if (dom.messagesContainer.scrollHeight - dom.messagesContainer.clientHeight <= dom.messagesContainer.scrollTop + 10) {
                     dom.newMessageButton.classList.add('hidden');
+                }
+            });
+            
+            window.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    unreadCount = 0;
+                    dom.favicon.href = defaultFavicon;
+                    document.title = originalTitle;
                 }
             });
         }
