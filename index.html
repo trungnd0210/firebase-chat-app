@@ -269,10 +269,6 @@
         const IMGBB_API_KEY = '7543a18b52116a7616226087a6d7b8f3';
         const AVAILABLE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
         
-        // State for debounced typing indicator
-        let isTyping = false;
-        let typingTimer = null;
-
         // --- DOM ELEMENTS CACHE ---
         const dom = {
             html: document.documentElement,
@@ -640,6 +636,39 @@
                 }
             });
         }
+        
+        function showEditMessageModal(messageId, currentText) {
+            const content = `
+                <textarea id="edit-message-input" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white" rows="4">${currentText}</textarea>
+            `;
+            const modal = createModal('edit-message-modal', 'Chỉnh sửa tin nhắn', content, 'Lưu thay đổi');
+            modal.querySelector('.modal-save').addEventListener('click', async () => {
+                const newText = modal.querySelector('#edit-message-input').value.trim();
+                if (newText && newText !== currentText) {
+                    const messageRef = doc(db, 'rooms', currentRoomId, 'messages', messageId);
+                    await updateDoc(messageRef, {
+                        text: newText,
+                        editedAt: serverTimestamp()
+                    });
+                }
+                modal.remove();
+            });
+            modal.classList.remove('hidden');
+            modal.querySelector('#edit-message-input').focus();
+        }
+
+        function showDeleteMessageConfirmation(messageId) {
+            const content = `<p class="text-gray-600 dark:text-gray-300">Bạn có chắc chắn muốn xóa tin nhắn này không? Hành động này không thể hoàn tác.</p>`;
+            const modal = createModal('delete-message-modal', 'Xóa tin nhắn?', content, 'Xóa vĩnh viễn');
+            modal.querySelector('.modal-save').classList.replace('bg-primary-600', 'bg-red-600');
+            modal.querySelector('.modal-save').classList.replace('hover:bg-primary-700', 'hover:bg-red-700');
+
+            modal.querySelector('.modal-save').addEventListener('click', async () => {
+                await deleteDoc(doc(db, 'rooms', currentRoomId, 'messages', messageId));
+                modal.remove();
+            });
+            modal.classList.remove('hidden');
+        }
 
         function renderMessage(message, id) {
             const isCurrentUser = message.uid === currentUser.uid;
@@ -661,10 +690,13 @@
 
             let contentHTML;
             if (message.type === 'gif' || message.type === 'image') {
-                contentHTML = `<img src="${message.text}" alt="Sent image" class="mt-1 rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" onclick="showImageModal('${message.text}')">`;
+                // FIX: Removed onclick attribute, added class and data-src for event delegation
+                contentHTML = `<img src="${message.text}" alt="Sent image" class="message-image mt-1 rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" data-src="${message.text}">`;
             } else {
                 contentHTML = `<p class="text-sm message-text">${message.text || ''}</p>`;
             }
+            
+            const editedTimestamp = message.editedAt ? `<span class="italic text-xs opacity-60 ml-2">(đã sửa)</span>` : '';
 
             let reactionsHTML = '';
             if (message.reactions) {
@@ -683,11 +715,29 @@
                 ${replyHTML}
                 ${!isCurrentUser ? `<p class="text-xs font-bold mb-1 text-primary-500 dark:text-primary-400">${message.displayName || 'User'}</p>` : ''}
                 ${contentHTML}
-                <p class="text-xs opacity-70 mt-1.5 text-right">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}</p>
+                <div class="flex items-center justify-end">
+                    <p class="text-xs opacity-70 mt-1.5 text-right">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}</p>
+                    ${editedTimestamp}
+                </div>
                 ${message.expiresAt ? `<p class="text-xs italic opacity-70 mt-1 text-right">⏱️ Disappears...</p>` : ''}
             </div>`;
 
             const pickerHTML = AVAILABLE_REACTIONS.map(emoji => `<button class="reaction-picker-emoji p-1 text-xl" data-message-id="${id}" data-emoji="${emoji}">${emoji}</button>`).join('');
+            
+            let userActionsHTML = '';
+            if (isCurrentUser) {
+                const editButtonHTML = message.type === 'text' ? `
+                    <button class="edit-message-btn p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Sửa tin nhắn" data-message-id="${id}" data-text="${message.text}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg>
+                    </button>` : '';
+                
+                userActionsHTML = `
+                    ${editButtonHTML}
+                    <button class="delete-message-btn p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Xóa tin nhắn" data-message-id="${id}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                `;
+            }
 
             const actionsHTML = `<div class="actions-group flex items-center gap-0.5">
                 <div class="reaction-button-wrapper relative">
@@ -701,6 +751,7 @@
                 <button class="reply-button p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-message-id="${id}" data-sender="${message.displayName || 'User'}" data-text="${message.text || ''}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg>
                 </button>
+                ${userActionsHTML}
             </div>`;
 
             const messageContentWrapper = `<div class="flex flex-col w-full">
@@ -845,6 +896,15 @@
                 modal.classList.remove('hidden');
             });
 
+            // FIX: Use event delegation for all dynamic content inside message container
+            dom.messagesContainer.addEventListener('click', (e) => {
+                const image = e.target.closest('.message-image');
+                if (image) {
+                    showImageModal(image.dataset.src);
+                    return;
+                }
+            });
+
             document.addEventListener('click', e => {
                 const visiblePicker = document.querySelector('.reaction-picker.picker-visible');
                 if (visiblePicker && !visiblePicker.contains(e.target) && !e.target.closest('.reaction-toggle-button')) {
@@ -861,8 +921,8 @@
                     });
                 }
                 
-                const deleteBtn = e.target.closest('.delete-room-btn');
-                if (deleteBtn) showDeleteRoomConfirmation(deleteBtn.dataset.id, deleteBtn.dataset.name);
+                const deleteRoomBtn = e.target.closest('.delete-room-btn');
+                if (deleteRoomBtn) showDeleteRoomConfirmation(deleteRoomBtn.dataset.id, deleteRoomBtn.dataset.name);
                 
                 const replyBtn = e.target.closest('.reply-button');
                 if (replyBtn) {
@@ -887,6 +947,16 @@
                     toggleReaction(reactionBtn.dataset.messageId, reactionBtn.dataset.emoji);
                     const picker = reactionBtn.closest('.reaction-picker');
                     if (picker) picker.classList.remove('picker-visible');
+                }
+
+                const editMsgBtn = e.target.closest('.edit-message-btn');
+                if (editMsgBtn) {
+                    showEditMessageModal(editMsgBtn.dataset.messageId, editMsgBtn.dataset.text);
+                }
+
+                const deleteMsgBtn = e.target.closest('.delete-message-btn');
+                if (deleteMsgBtn) {
+                    showDeleteMessageConfirmation(deleteMsgBtn.dataset.messageId);
                 }
             });
 
