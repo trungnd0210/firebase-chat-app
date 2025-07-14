@@ -173,7 +173,7 @@
                         <button id="translate-toggle" class="px-3 py-1 text-sm font-bold rounded-full transition"></button>
                         <div class="relative">
                             <img id="user-avatar" class="w-10 h-10 rounded-full" src="" alt="Avatar">
-                            <button id="edit-user-name-button" class="absolute -bottom-1 -right-1 p-1 bg-white dark:bg-gray-700 rounded-full text-gray-500 hover:text-primary-600 shadow-md border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shrink-0">
+                            <button id="edit-user-profile-button" class="absolute -bottom-1 -right-1 p-1 bg-white dark:bg-gray-700 rounded-full text-gray-500 hover:text-primary-600 shadow-md border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shrink-0">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg>
                             </button>
                         </div>
@@ -292,7 +292,7 @@
             createRoomButton: document.getElementById('create-room-button'),
             backToLobbyButton: document.getElementById('back-to-lobby-button'),
             editRoomNameButton: document.getElementById('edit-room-name-button'),
-            editUserNameButton: document.getElementById('edit-user-name-button'),
+            editUserProfileButton: document.getElementById('edit-user-profile-button'),
             manageRequestsButton: document.getElementById('manage-requests-button'),
             requestsCount: document.getElementById('requests-count'),
             favicon: document.getElementById('favicon'),
@@ -314,7 +314,7 @@
         const defaultFavicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>";
         const newMesageFavicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>";
 
-        // --- UTILITY FUNCTIONS ---
+        // --- UTILITY & UI FUNCTIONS ---
         function showScreen(screenName) {
             Object.values(dom.screens).forEach(screen => screen.classList.add('hidden'));
             dom.screens[screenName].classList.remove('hidden');
@@ -356,6 +356,68 @@
             if (unsubscribeMessages) unsubscribeMessages();
             if (unsubscribeTyping) unsubscribeTyping();
             if (messageCheckerInterval) clearInterval(messageCheckerInterval);
+        }
+
+        // --- USER PROFILE & AVATAR LOGIC ---
+        function getEffectivePhotoURL(user) {
+            const preference = localStorage.getItem('avatarPreference');
+            if (preference === 'anonymous') {
+                return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'A')}&background=random`;
+            }
+            return user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'A')}&background=random`;
+        }
+
+        function updateUserUI() {
+            if (!currentUser) return;
+            dom.userAvatar.src = getEffectivePhotoURL(currentUser);
+            dom.userName.textContent = currentUser.displayName || 'Anonymous User';
+            dom.lobbyUserName.textContent = currentUser.displayName;
+        }
+
+        function showEditProfileModal() {
+            const currentPreference = localStorage.getItem('avatarPreference') || 'google';
+            const content = `
+                <div class="space-y-4">
+                    <div>
+                        <label for="new-user-name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
+                        <input id="new-user-name-input" type="text" value="${currentUser.displayName}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avatar</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <input type="radio" name="avatar-option" value="google" class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500" ${currentPreference === 'google' ? 'checked' : ''}>
+                                <span class="ml-3 text-sm text-gray-800 dark:text-gray-200">Use Google Photo</span>
+                                <img src="${currentUser.photoURL}" class="w-8 h-8 rounded-full ml-auto">
+                            </label>
+                            <label class="flex items-center p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <input type="radio" name="avatar-option" value="anonymous" class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500" ${currentPreference === 'anonymous' ? 'checked' : ''}>
+                                <span class="ml-3 text-sm text-gray-800 dark:text-gray-200">Use Anonymous Avatar</span>
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName || 'A')}&background=random" class="w-8 h-8 rounded-full ml-auto">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const modal = createModal('user-profile-modal', 'Edit Profile', content);
+            modal.querySelector('.modal-save').addEventListener('click', async () => {
+                const newName = modal.querySelector('#new-user-name-input').value.trim();
+                const newAvatarPreference = modal.querySelector('input[name="avatar-option"]:checked').value;
+
+                // Update display name if changed
+                if (newName && newName !== currentUser.displayName) {
+                    await updateProfile(auth.currentUser, { displayName: newName });
+                    await auth.currentUser.reload();
+                    currentUser = auth.currentUser;
+                }
+
+                // Update avatar preference
+                localStorage.setItem('avatarPreference', newAvatarPreference);
+                
+                updateUserUI();
+                modal.remove();
+            });
+            modal.classList.remove('hidden');
         }
 
         // --- TRANSLATION LOGIC ---
@@ -400,7 +462,7 @@
 
         function showNotification(title) {
             if (Notification.permission === "granted" && document.hidden) {
-                new Notification(title, { body: "sent you a new message." });
+                new Notification(title, { body: "..." });
             }
         }
 
@@ -410,6 +472,7 @@
             cleanupListeners();
             if (user) {
                 currentUser = user;
+                updateUserUI(); // Update UI with correct avatar and name
                 showLobby();
             } else {
                 currentUser = null;
@@ -496,8 +559,7 @@
                 const isAdmin = roomData.admin === currentUser.uid;
                 
                 dom.roomNameElement.textContent = roomData.name;
-                dom.userAvatar.src = currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName}&background=random`;
-                dom.userName.textContent = currentUser.displayName || 'Anonymous User';
+                updateUserUI(); // Set avatar and name based on preference
 
                 dom.manageRequestsButton.classList.toggle('hidden', !isAdmin);
                 dom.editRoomNameButton.classList.toggle('hidden', !isAdmin);
@@ -506,7 +568,6 @@
             
             updateTranslateButton();
             listenForMessages(roomId);
-            // listenForTyping(roomId); // Typing indicator disabled
             messageCheckerInterval = setInterval(() => checkExpiredMessages(roomId), 1000);
         }
 
@@ -560,6 +621,7 @@
                 : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-none';
             const expiresAt = message.expiresAt ? `data-expires-at="${message.expiresAt.toDate().toISOString()}"` : '';
 
+            // This uses the photoURL stored in the message, which respects the sender's choice at the time of sending.
             const avatarHTML = `<img src="${message.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.displayName || 'U')}&background=random`}" alt="Avatar" class="w-8 h-8 rounded-full shadow-md shrink-0">`;
             
             let replyHTML = '';
@@ -647,26 +709,6 @@
             replyingToMessage = null;
             dom.replyingToBanner.classList.add('hidden');
         }
-
-        /* --- TYPING INDICATOR (DISABLED) ---
-        function listenForTyping(roomId) {
-            const typingCol = collection(db, 'rooms', roomId, 'typingStatus');
-            unsubscribeTyping = onSnapshot(typingCol, (snapshot) => {
-                const typingUsers = snapshot.docs
-                    .map(doc => doc.data())
-                    .filter(data => doc.id !== currentUser.uid && data.isTyping && (Date.now() - (data.timestamp?.toDate() || 0)) < 3000)
-                    .map(data => data.displayName);
-
-                dom.typingIndicator.textContent = typingUsers.length > 0 ? `${typingUsers.join(', ')} is typing...` : '';
-            });
-        }
-
-        async function updateUserTypingStatus(isTyping) {
-            if (!currentRoomId || !currentUser) return;
-            const typingRef = doc(db, 'rooms', currentRoomId, 'typingStatus', currentUser.uid);
-            await setDoc(typingRef, { isTyping, displayName: currentUser.displayName, timestamp: serverTimestamp() });
-        }
-        */
         
         // --- GIPHY LOGIC ---
         async function showGiphyModal() {
@@ -709,7 +751,7 @@
         async function sendGifMessage(gifUrl) {
             if (!currentRoomId) return;
             await addDoc(collection(db, 'rooms', currentRoomId, 'messages'), {
-                uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL,
+                uid: currentUser.uid, displayName: currentUser.displayName, photoURL: getEffectivePhotoURL(currentUser),
                 text: gifUrl, type: 'gif', createdAt: serverTimestamp(), expiresAt: null, replyTo: null, reactions: {},
             });
         }
@@ -792,17 +834,7 @@
                 modal.classList.remove('hidden');
             });
 
-            dom.editUserNameButton.addEventListener('click', () => {
-                const modal = createModal('user-name-modal', 'Change Display Name', 
-                    `<input id="new-user-name-input" type="text" value="${currentUser.displayName}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white">`
-                );
-                modal.querySelector('.modal-save').addEventListener('click', async () => {
-                     const newName = modal.querySelector('#new-user-name-input').value.trim();
-                    if (newName && newName !== currentUser.displayName) await updateProfile(currentUser, { displayName: newName });
-                    modal.remove();
-                });
-                modal.classList.remove('hidden');
-            });
+            dom.editUserProfileButton.addEventListener('click', showEditProfileModal);
 
             dom.manageRequestsButton.addEventListener('click', async () => {
                 const roomSnap = await getDoc(doc(db, 'rooms', currentRoomId));
@@ -859,15 +891,19 @@
                 }
                 
                 await addDoc(collection(db, 'rooms', currentRoomId, 'messages'), {
-                    uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL,
-                    text: textToSend, createdAt: serverTimestamp(),
+                    uid: currentUser.uid, 
+                    displayName: currentUser.displayName, 
+                    photoURL: getEffectivePhotoURL(currentUser), // Use the correct avatar URL
+                    text: textToSend, 
+                    createdAt: serverTimestamp(),
                     expiresAt: parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null,
-                    replyTo: replyingToMessage, type: 'text', reactions: {}
+                    replyTo: replyingToMessage, 
+                    type: 'text', 
+                    reactions: {}
                 });
                 
                 dom.messageInput.value = '';
                 cancelReply(); 
-                // No need to call updateUserTypingStatus(false) here as the timer will handle it.
             });
             
             dom.newMessageButton.addEventListener('click', () => {
@@ -914,21 +950,6 @@
             if (localStorage.getItem('theme') === 'dark') dom.html.classList.add('dark');
             updateThemeIcon();
             updateTranslateButton();
-
-            /*
-            // Typing Indicator (Disabled)
-            dom.messageInput.addEventListener('input', () => {
-                if (!isTyping) {
-                    updateUserTypingStatus(true);
-                    isTyping = true;
-                }
-                clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    updateUserTypingStatus(false);
-                    isTyping = false;
-                }, 2000); 
-            });
-            */
 
             dom.giphyButton.addEventListener('click', showGiphyModal);
         }
