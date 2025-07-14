@@ -506,7 +506,7 @@
             
             updateTranslateButton();
             listenForMessages(roomId);
-            listenForTyping(roomId);
+            // listenForTyping(roomId); // Typing indicator disabled
             messageCheckerInterval = setInterval(() => checkExpiredMessages(roomId), 1000);
         }
 
@@ -648,7 +648,7 @@
             dom.replyingToBanner.classList.add('hidden');
         }
 
-        // --- TYPING INDICATOR (OPTIMIZED) ---
+        /* --- TYPING INDICATOR (DISABLED) ---
         function listenForTyping(roomId) {
             const typingCol = collection(db, 'rooms', roomId, 'typingStatus');
             unsubscribeTyping = onSnapshot(typingCol, (snapshot) => {
@@ -666,6 +666,7 @@
             const typingRef = doc(db, 'rooms', currentRoomId, 'typingStatus', currentUser.uid);
             await setDoc(typingRef, { isTyping, displayName: currentUser.displayName, timestamp: serverTimestamp() });
         }
+        */
         
         // --- GIPHY LOGIC ---
         async function showGiphyModal() {
@@ -866,7 +867,7 @@
                 
                 dom.messageInput.value = '';
                 cancelReply(); 
-                updateUserTypingStatus(false);
+                // No need to call updateUserTypingStatus(false) here as the timer will handle it.
             });
             
             dom.newMessageButton.addEventListener('click', () => {
@@ -914,21 +915,20 @@
             updateThemeIcon();
             updateTranslateButton();
 
-            // Typing Indicator (Optimized with Debouncing)
+            /*
+            // Typing Indicator (Disabled)
             dom.messageInput.addEventListener('input', () => {
-                // Chỉ gửi trạng thái "true" một lần khi người dùng bắt đầu gõ
                 if (!isTyping) {
                     updateUserTypingStatus(true);
                     isTyping = true;
                 }
-                // Đặt lại bộ đếm thời gian chờ mỗi khi có ký tự mới
                 clearTimeout(typingTimer);
-                // Sau một khoảng thời gian không gõ (2 giây), gửi trạng thái "false"
                 typingTimer = setTimeout(() => {
                     updateUserTypingStatus(false);
                     isTyping = false;
                 }, 2000); 
             });
+            */
 
             dom.giphyButton.addEventListener('click', showGiphyModal);
         }
