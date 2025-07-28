@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0284c7"/>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/0ea5e9/ffffff?text=Chat">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Pro Chat">
+
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -153,25 +162,25 @@
         <div id="chat-screen" class="hidden flex-1 flex-col bg-gray-100 dark:bg-gray-900 md:rounded-2xl">
             <!-- Header -->
             <header class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700/80 p-3 md:p-4 flex justify-between items-center shadow-sm md:rounded-t-2xl sticky top-0 z-20">
-                <div class="flex items-center flex-1 min-w-0">
-                    <button id="back-to-lobby-button" class="mr-2 md:mr-4 p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <div class="flex items-center min-w-0">
-                        <h1 id="room-name" class="text-lg md:text-xl font-bold text-gray-800 dark:text-white mr-2 truncate"></h1>
-                        <button id="edit-room-name-button" class="p-1 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"></path></svg>
-                        </button>
+                <div class="flex items-center gap-4">
+                    <button id="back-to-lobby-button" class="font-semibold text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition">Home</button>
+                    <div class="relative">
+                        <select id="room-switcher" class="appearance-none font-semibold bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 pl-3 pr-8 leading-tight focus:outline-none focus:border-primary-500">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
                     </div>
-                    <button id="manage-requests-button" class="hidden ml-2 md:ml-4 bg-primary-100 text-primary-700 text-xs font-bold py-1 px-2 md:px-3 rounded-full flex items-center gap-2 shrink-0 hover:bg-primary-200 transition">
-                        <span class="hidden md:inline">Manage Requests</span>
-                        <span class="md:hidden">Reqs</span>
-                        <span id="requests-count" class="bg-primary-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">0</span>
-                    </button>
+                     <h1 id="room-name" class="text-lg md:text-xl font-bold text-gray-800 dark:text-white mr-2 truncate hidden"></h1>
                 </div>
+
                 <div class="flex items-center shrink-0 gap-2">
-                    <div class="flex items-center gap-3 border-r border-gray-200 dark:border-gray-700 pr-3">
-                        <button id="translate-toggle" class="px-3 py-1 text-sm font-bold rounded-full transition"></button>
+                    <div class="flex items-center gap-3">
+                        <button id="manage-requests-button" class="hidden bg-primary-100 text-primary-700 text-xs font-bold py-1 px-3 rounded-full items-center gap-2 shrink-0 hover:bg-primary-200 transition">
+                            <span>Requests</span>
+                            <span id="requests-count" class="bg-primary-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">0</span>
+                        </button>
                         <div class="relative">
                             <img id="user-avatar" class="w-10 h-10 rounded-full" src="" alt="Avatar">
                             <button id="edit-user-profile-button" class="absolute -bottom-1 -right-1 p-1 bg-white dark:bg-gray-700 rounded-full text-gray-500 hover:text-primary-600 shadow-md border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shrink-0">
@@ -234,7 +243,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, Timestamp, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, writeBatch, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, Timestamp, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, writeBatch, getDocs, limit, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
         // --- FIREBASE CONFIGURATION ---
@@ -264,7 +273,6 @@
         let messageCount = 0;
         let unreadCount = 0;
         let replyingToMessage = null;
-        let isTranslateEnabled = localStorage.getItem('translateEnabled') === 'true';
         let areNotificationsEnabled = localStorage.getItem('notificationsEnabled') !== 'false'; // Default to true
         const originalTitle = document.title;
         const GIPHY_API_KEY = 'DKZ8cJ3YSig3vMJssLkKtxfpTWJsxHrV'; 
@@ -294,7 +302,6 @@
             roomListContainer: document.getElementById('room-list-container'),
             createRoomButton: document.getElementById('create-room-button'),
             backToLobbyButton: document.getElementById('back-to-lobby-button'),
-            editRoomNameButton: document.getElementById('edit-room-name-button'),
             editUserProfileButton: document.getElementById('edit-user-profile-button'),
             manageRequestsButton: document.getElementById('manage-requests-button'),
             requestsCount: document.getElementById('requests-count'),
@@ -310,8 +317,8 @@
             giphyButton: document.getElementById('giphy-button'),
             imageUploadButton: document.getElementById('image-upload-button'),
             imageInput: document.getElementById('image-input'),
-            translateToggle: document.getElementById('translate-toggle'),
             submitButton: document.getElementById('submit-button'),
+            roomSwitcher: document.getElementById('room-switcher'),
         };
 
         const originalSubmitButtonContent = dom.submitButton.innerHTML;
@@ -373,7 +380,7 @@
 
         function showErrorModal(message) {
             const content = `<p class="text-gray-600 dark:text-gray-300">${message}</p>`;
-            const modal = createModal('error-modal', 'Translation Error', content, 'OK');
+            const modal = createModal('error-modal', 'Error', content, 'OK');
             modal.querySelector('.modal-save').addEventListener('click', () => modal.remove());
             modal.querySelector('.modal-cancel').style.display = 'none';
             modal.classList.remove('hidden');
@@ -445,40 +452,6 @@
                 modal.remove();
             });
             modal.classList.remove('hidden');
-        }
-
-        // --- TRANSLATION LOGIC ---
-        async function translateText(textToTranslate) {
-            const apiKey = "AIzaSyBNKU6ZzXgtarPkW-ZWuEoNcO6rWvVqwl8";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            const prompt = `Translate the following Vietnamese text to English. Provide only the translated text, without any introductory phrases: "${textToTranslate}"`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
-                const result = await response.json();
-                if (result.candidates?.[0]?.content?.parts?.[0]?.text) return result.candidates[0].content.parts[0].text.trim();
-                throw new Error("Could not parse translation from API response.");
-            } catch (error) {
-                console.error("Error translating text:", error);
-                showErrorModal(`Sorry, the translation service is currently unavailable (Error: ${error.message}). The original message will be sent.`);
-                throw error;
-            }
-        }
-        
-        function updateTranslateButton() {
-            if (isTranslateEnabled) {
-                dom.translateToggle.textContent = 'EN';
-                dom.translateToggle.title = 'Translation to English is ON';
-                dom.translateToggle.classList.add('bg-green-500', 'text-white');
-                dom.translateToggle.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
-            } else {
-                dom.translateToggle.textContent = 'VN';
-                dom.translateToggle.title = 'Translation is OFF';
-                dom.translateToggle.classList.remove('bg-green-500', 'text-white');
-                dom.translateToggle.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
-            }
         }
 
         // --- NOTIFICATION LOGIC ---
@@ -583,6 +556,23 @@
             });
             modal.classList.remove('hidden');
         }
+        
+        async function populateRoomSwitcher(currentRoomId) {
+            const roomsQuery = query(collection(db, 'rooms'), where('members', 'array-contains', currentUser.uid));
+            const snapshot = await getDocs(roomsQuery);
+            dom.roomSwitcher.innerHTML = '';
+            snapshot.docs.forEach(doc => {
+                const room = { id: doc.id, ...doc.data() };
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = room.name;
+                if (room.id === currentRoomId) {
+                    option.selected = true;
+                }
+                dom.roomSwitcher.appendChild(option);
+            });
+        }
+
 
         function enterRoom(roomId) {
             currentRoomId = roomId;
@@ -600,11 +590,10 @@
                 updateUserUI();
 
                 dom.manageRequestsButton.classList.toggle('hidden', !isAdmin);
-                dom.editRoomNameButton.classList.toggle('hidden', !isAdmin);
                 if(isAdmin) dom.requestsCount.textContent = (roomData.pendingRequests || []).length;
             });
             
-            updateTranslateButton();
+            populateRoomSwitcher(roomId);
             listenForMessages(roomId);
             messageCheckerInterval = setInterval(() => checkExpiredMessages(roomId), 1000);
         }
@@ -625,7 +614,7 @@
                                 dom.favicon.href = newMesageFavicon;
                                 document.title = `(${unreadCount}) ${originalTitle}`;
                             }
-                            showNotification('Windows service', 'Check your setting');
+                            showNotification(`Tin nhắn mới từ ${message.displayName}`, message.text);
                         }
                     }
                 });
@@ -688,36 +677,22 @@
 
         function renderMessage(message, id) {
             const isCurrentUser = message.uid === currentUser.uid;
-            const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
-            const bubbleClasses = isCurrentUser 
-                ? 'bg-primary-600 text-white rounded-br-none' 
-                : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-none';
-            const expiresAt = message.expiresAt ? `data-expires-at="${message.expiresAt.toDate().toISOString()}"` : '';
-
-            const avatarHTML = `<img src="${message.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.displayName || 'U')}&background=random`}" alt="Avatar" class="w-8 h-8 rounded-full shadow-md shrink-0">`;
+            const backgroundClass = isCurrentUser ? 'bg-gray-100 dark:bg-gray-800' : 'bg-white dark:bg-gray-700';
             
-            let replyHTML = '';
-            if (message.replyTo) {
-                replyHTML = `<div class="border-l-2 ${isCurrentUser ? 'border-primary-300' : 'border-gray-400'} pl-2 mb-2 opacity-80">
-                    <p class="text-xs font-bold">${message.replyTo.sender || 'User'}</p>
-                    <p class="text-xs italic truncate">${message.replyTo.text || ''}</p>
-                </div>`;
-            }
-
             let contentHTML;
             if (message.type === 'gif' || message.type === 'image') {
-                contentHTML = `<img src="${message.text}" alt="Sent image" class="message-image mt-1 rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" data-src="${message.text}">`;
+                contentHTML = `<img src="${message.text}" alt="Sent image" class="message-image mt-2 rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" data-src="${message.text}">`;
             } else {
-                contentHTML = `<p class="text-sm message-text">${message.text || ''}</p>`;
+                contentHTML = `<p class="text-sm message-text mt-2">${message.text || ''}</p>`;
             }
-            
+
             const editedTimestamp = message.editedAt ? `<span class="italic text-xs opacity-60 ml-2">(đã sửa)</span>` : '';
 
             let reactionsHTML = '';
             if (message.reactions) {
                 const reactionEntries = Object.entries(message.reactions).filter(([_, uids]) => uids && uids.length > 0);
                 if (reactionEntries.length > 0) {
-                    reactionsHTML = `<div class="flex gap-1.5 mt-1.5 flex-wrap ${isCurrentUser ? 'justify-end' : 'justify-start'}">`;
+                    reactionsHTML = `<div class="flex gap-1.5 mt-2 flex-wrap">`;
                     reactionEntries.forEach(([emoji, uids]) => {
                         const userHasReacted = uids.includes(currentUser.uid);
                         reactionsHTML += `<button class="reaction-chip text-xs px-2 py-0.5 rounded-full border ${userHasReacted ? 'user-reacted' : 'bg-gray-200 dark:bg-gray-600 border-transparent'}" data-message-id="${id}" data-emoji="${emoji}">${emoji} ${uids.length}</button>`;
@@ -726,19 +701,6 @@
                 }
             }
 
-            const messageBubbleHTML = `<div class="p-3 rounded-2xl shadow-sm ${bubbleClasses}">
-                ${replyHTML}
-                ${!isCurrentUser ? `<p class="text-xs font-bold mb-1 text-primary-500 dark:text-primary-400">${message.displayName || 'User'}</p>` : ''}
-                ${contentHTML}
-                <div class="flex items-center justify-end">
-                    <p class="text-xs opacity-70 mt-1.5 text-right">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}</p>
-                    ${editedTimestamp}
-                </div>
-                ${message.expiresAt ? `<p class="text-xs italic opacity-70 mt-1 text-right">⏱️ Disappears...</p>` : ''}
-            </div>`;
-
-            const pickerHTML = AVAILABLE_REACTIONS.map(emoji => `<button class="reaction-picker-emoji p-1 text-xl" data-message-id="${id}" data-emoji="${emoji}">${emoji}</button>`).join('');
-            
             let userActionsHTML = '';
             if (isCurrentUser) {
                 const editButtonHTML = message.type === 'text' ? `
@@ -754,38 +716,42 @@
                 `;
             }
 
-            const actionsHTML = `<div class="actions-group flex items-center gap-0.5">
-                <div class="reaction-button-wrapper relative">
-                    <button class="reaction-toggle-button p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-message-id="${id}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
-                    <div id="picker-${id}" class="reaction-picker absolute bottom-full mb-1 flex gap-1 bg-white dark:bg-gray-800 p-1.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                        ${pickerHTML}
+            const pickerHTML = AVAILABLE_REACTIONS.map(emoji => `<button class="reaction-picker-emoji p-1 text-xl" data-message-id="${id}" data-emoji="${emoji}">${emoji}</button>`).join('');
+
+            return `
+                <div id="msg-${id}" class="message-row p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700/50 ${backgroundClass}">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <img src="${message.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.displayName || 'U')}&background=random`}" alt="Avatar" class="w-10 h-10 rounded-full shadow-md shrink-0">
+                            <div>
+                                <p class="font-bold text-primary-700 dark:text-primary-400">${message.displayName || 'User'}</p>
+                                <div class="flex items-center">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">${message.createdAt ? message.createdAt.toDate().toLocaleString() : 'Sending...'}</p>
+                                    ${editedTimestamp}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-0.5">
+                             <div class="reaction-button-wrapper relative">
+                                <button class="reaction-toggle-button p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-message-id="${id}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </button>
+                                <div id="picker-${id}" class="reaction-picker absolute bottom-full right-0 mb-1 flex gap-1 bg-white dark:bg-gray-800 p-1.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                                    ${pickerHTML}
+                                </div>
+                            </div>
+                            <button class="reply-button p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-message-id="${id}" data-sender="${message.displayName || 'User'}" data-text="${message.text || ''}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg>
+                            </button>
+                            ${userActionsHTML}
+                        </div>
+                    </div>
+                    <div class="pl-12">
+                        ${contentHTML}
+                        ${reactionsHTML}
                     </div>
                 </div>
-                <button class="reply-button p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition" data-message-id="${id}" data-sender="${message.displayName || 'User'}" data-text="${message.text || ''}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg>
-                </button>
-                ${userActionsHTML}
-            </div>`;
-
-            const messageContentWrapper = `<div class="flex flex-col w-full">
-                ${messageBubbleHTML}
-                ${reactionsHTML}
-            </div>`;
-            
-            let finalLayout;
-            if (isCurrentUser) {
-                finalLayout = `${actionsHTML} ${messageContentWrapper} ${avatarHTML}`;
-            } else {
-                finalLayout = `${avatarHTML} ${messageContentWrapper} ${actionsHTML}`;
-            }
-
-            return `<div class="flex w-full message-row ${alignClass}" id="msg-${id}" data-uid="${message.uid}" ${expiresAt}>
-                <div class="flex items-end gap-2 max-w-[85%]">
-                    ${finalLayout}
-                </div>
-            </div>`;
+            `;
         }
         
         async function toggleReaction(messageId, emoji) {
@@ -973,16 +939,11 @@
                 }
             });
 
-            dom.editRoomNameButton.addEventListener('click', () => {
-                const modal = createModal('room-name-modal', 'Change Room Name', 
-                    `<input id="new-room-name-input" type="text" value="${dom.roomNameElement.textContent}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white">`
-                );
-                modal.querySelector('.modal-save').addEventListener('click', async () => {
-                    const newName = modal.querySelector('#new-room-name-input').value.trim();
-                    if (newName && currentRoomId) await updateDoc(doc(db, 'rooms', currentRoomId), { name: newName });
-                    modal.remove();
-                });
-                modal.classList.remove('hidden');
+            dom.roomSwitcher.addEventListener('change', (e) => {
+                const newRoomId = e.target.value;
+                if (newRoomId !== currentRoomId) {
+                    enterRoom(newRoomId);
+                }
             });
 
             dom.editUserProfileButton.addEventListener('click', showEditProfileModal);
@@ -1026,26 +987,12 @@
                 e.preventDefault();
                 const text = dom.messageInput.value.trim();
                 if (!text || !currentRoomId) return;
-                let textToSend = text;
-
-                if (isTranslateEnabled) {
-                    dom.submitButton.disabled = true;
-                    dom.submitButton.innerHTML = '<div class="spinner-small"></div>';
-                    try {
-                        textToSend = await translateText(text);
-                    } catch (error) {
-                        console.error("Translation failed, sending original text.", error);
-                    } finally {
-                        dom.submitButton.disabled = false;
-                        dom.submitButton.innerHTML = originalSubmitButtonContent;
-                    }
-                }
                 
                 await addDoc(collection(db, 'rooms', currentRoomId, 'messages'), {
                     uid: currentUser.uid, 
                     displayName: currentUser.displayName, 
                     photoURL: getEffectivePhotoURL(currentUser),
-                    text: textToSend, 
+                    text: text, 
                     createdAt: serverTimestamp(),
                     expiresAt: parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null,
                     replyTo: replyingToMessage, 
@@ -1101,16 +1048,9 @@
                 }
             });
 
-            dom.translateToggle.addEventListener('click', () => {
-                isTranslateEnabled = !isTranslateEnabled;
-                localStorage.setItem('translateEnabled', isTranslateEnabled);
-                updateTranslateButton();
-            });
-
             if (localStorage.getItem('theme') === 'dark') dom.html.classList.add('dark');
             updateThemeIcon();
             updateNotificationToggleButton();
-            updateTranslateButton();
 
             dom.giphyButton.addEventListener('click', showGiphyModal);
 
@@ -1138,6 +1078,17 @@
                     uploadAndSendImage(file);
                 }
             });
+
+            // --- PWA Service Worker Registration ---
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js').then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+            }
         }
 
         initApp();
