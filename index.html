@@ -7,37 +7,34 @@
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Cấu hình cho Tailwind dark mode và màu tùy chỉnh
+        // Configuration for Tailwind dark mode and custom colors
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
                         'primary': { '50': '#f0f9ff', '100': '#e0f2fe', '200': '#bae6fd', '300': '#7dd3fc', '400': '#38bdf8', '500': '#0ea5e9', '600': '#0284c7', '700': '#0369a1', '800': '#075985', '900': '#0c4a6e' },
-                        'editor-bg': '#282c34', // Màu nền editor tối
-                        'editor-text': '#abb2bf', // Màu chữ editor tối
-                        'editor-line-num': '#636d83', // Màu số dòng
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts: Fira Code for monospace look -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Favicon -->
     <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📟</text></svg>">
     <!-- Custom Styles -->
     <style>
         body {
-            font-family: 'Fira Code', monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+            font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-        .scrollable-content::-webkit-scrollbar { width: 8px; height: 8px; }
+        .scrollable-content::-webkit-scrollbar { width: 6px; height: 6px; }
         .scrollable-content::-webkit-scrollbar-track { background: transparent; }
-        .scrollable-content::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        .scrollable-content::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         .dark .scrollable-content::-webkit-scrollbar-thumb { background: #4b5563; }
         .message.fading-out { opacity: 0; transform: scale(0.9); transition: all 0.3s ease-in-out; }
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #0ea5e9; animation: spin 1s ease infinite; }
@@ -47,73 +44,22 @@
         .animate-bounce-in { animation: bounce-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .reaction-chip.user-reacted { background-color: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
         .dark .reaction-chip.user-reacted { background-color: #075985; color: #e0f2fe; border-color: #0284c7; }
-
-        /* Giao diện kiểu Code Editor */
-        .code-line {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem; /* 16px */
-            padding: 0.125rem 0.5rem;
-            font-size: 0.875rem; /* 14px */
+        .thread-container {
+            padding-left: 2.5rem; /* 40px */
+            border-left: 2px solid #e5e7eb;
+            margin-left: 0.75rem; /* 12px */
         }
-        .line-number {
-            text-align: right;
-            width: 40px;
-            color: #9ca3af;
-            flex-shrink: 0;
-            user-select: none;
-            padding-top: 0.125rem;
-        }
-        .dark .line-number {
-            color: theme('colors.editor-line-num');
-        }
-        .line-content {
-            flex-grow: 1;
-            padding-top: 0.125rem;
-        }
-        .line-user {
-            font-weight: 600;
-            color: #4338ca; /* Màu tên người dùng giống biến trong code */
-            margin-right: 0.75rem;
-        }
-        .dark .line-user {
-            color: #a5b4fc; /* Màu sáng hơn cho dark mode */
-        }
-        .message-text {
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: #374151;
-        }
-        .dark .message-text {
-            color: #d1d5db;
+        .dark .thread-container {
+            border-left-color: #374151;
         }
         .message-actions {
             opacity: 0;
             transition: opacity 0.2s ease-in-out;
             pointer-events: none;
-            display: inline-flex;
-            margin-left: 1rem;
-            background-color: #f3f4f6;
-            border-radius: 9999px;
-            padding: 2px;
         }
-        .dark .message-actions {
-            background-color: #374151;
-        }
-        .code-line:hover .message-actions {
+        .group:hover .message-actions {
             opacity: 1;
             pointer-events: auto;
-        }
-        .thread-container {
-            margin-left: 2.5rem; /* 40px */
-            padding-left: 1rem; /* 16px */
-            border-left: 2px solid #e5e7eb;
-        }
-        .dark .thread-container {
-            border-left-color: #374151;
-        }
-        .reply-form-container {
-            margin-left: 3.5rem; /* 56px */
         }
     </style>
 </head>
@@ -124,7 +70,7 @@
         <!-- Login Screen -->
         <div id="login-screen" class="flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-gray-900 p-8 text-center transition-colors duration-300">
             <div class="mb-8 text-6xl">📟</div>
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2">Welcome to Code Chat</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2">Welcome to Pro Chat</h1>
             <p class="text-gray-500 dark:text-gray-400 mb-10">The modern, fast, and fun way to connect.</p>
             <button id="login-button" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary-500/20 flex items-center justify-center transition-all duration-300 transform hover:scale-105 w-64">
                 <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.75 8.36,4.73 12.19,4.73C14.03,4.73 15.6,5.36 16.81,6.45L18.83,4.55C17.02,2.77 14.81,2 12.19,2C6.42,2 2.03,6.8 2.03,12C2.03,17.2 6.42,22 12.19,22C17.6,22 21.54,18.33 21.54,12.29C21.54,11.8 21.48,11.45 21.35,11.1Z"/></svg>
@@ -154,8 +100,8 @@
         </div>
 
         <!-- Chat Screen -->
-        <div id="chat-screen" class="hidden flex flex-col h-full bg-white dark:bg-editor-bg">
-            <!-- Header -->
+        <div id="chat-screen" class="hidden flex flex-col h-full bg-gray-100 dark:bg-gray-900">
+            <!-- Header: This part will be fixed -->
             <header class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700/80 p-3 md:p-4 flex justify-between items-center shadow-sm shrink-0">
                 <div class="flex items-center flex-1 min-w-0">
                     <button id="back-to-lobby-button" class="mr-2 md:mr-4 p-2 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
@@ -187,15 +133,16 @@
                 </div>
             </header>
 
-            <!-- Messages Container -->
-            <main id="messages-container" class="flex-1 overflow-y-auto scrollable-content min-h-0 py-4">
+            <!-- Messages Container: This part will scroll -->
+            <main id="messages-container" class="flex-1 p-4 lg:p-6 overflow-y-auto space-y-6 scrollable-content min-h-0">
                  <div id="messages-loader" class="hidden justify-center py-4"><div class="spinner"></div></div>
             </main>
             
-            <!-- Message Input Form -->
+            <!-- Message Input Form: This part will be fixed -->
             <footer class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-3 md:p-4 border-t border-gray-200 dark:border-gray-700/80 shrink-0">
                 <div id="typing-indicator" class="px-1 text-sm italic text-gray-500 dark:text-gray-400"></div>
                 <form id="message-form" class="flex items-start space-x-2 md:space-x-3">
+                    <img id="main-reply-avatar" class="w-8 h-8 rounded-full" src="" alt="Your avatar">
                     <div class="relative flex-1 flex items-center bg-gray-100 dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-primary-500">
                         <div class="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                             <input type="file" id="image-input" accept="image/*" class="hidden">
@@ -270,7 +217,7 @@
         let isLoadingMoreMessages = false;
         let allMessagesLoaded = false;
         const MESSAGES_PER_PAGE = 50;
-        const OLDER_MESSAGES_PER_PAGE = 15;
+        const OLDER_MESSAGES_PER_PAGE = 15; // New constant for pagination
 
         // --- DOM ELEMENTS CACHE ---
         const dom = {
@@ -309,6 +256,7 @@
             imageInput: document.getElementById('image-input'),
             translateToggle: document.getElementById('translate-toggle'),
             submitButton: document.getElementById('submit-button'),
+            mainReplyAvatar: document.getElementById('main-reply-avatar'),
         };
 
         const defaultFavicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📟</text></svg>";
@@ -342,38 +290,12 @@
             return modal;
         }
         
-        function showInfoModal(title, message) {
-            const content = `<p class="text-gray-600 dark:text-gray-300">${message}</p>`;
-            const modal = createModal('info-modal', title, content, 'OK');
-            modal.querySelector('.modal-save').addEventListener('click', () => modal.remove());
-            modal.querySelector('.modal-cancel').style.display = 'none';
-            modal.classList.remove('hidden');
-        }
-
         function showImageModal(imageUrl) {
-            const existingModal = document.getElementById('image-viewer-modal');
-            if(existingModal) existingModal.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'image-viewer-modal';
-            modal.className = "fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-bounce-in";
-            modal.innerHTML = `
-                <div class="relative">
-                    <img src="${imageUrl}" alt="Full size image" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
-                    <button class="modal-close absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full p-1.5 hover:scale-110 transition-transform">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-            `;
-            dom.modalContainer.appendChild(modal);
-            
-            const closeModal = () => modal.remove();
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal();
-                }
-            });
-            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            const modal = createModal('image-viewer-modal', '', `<img src="${imageUrl}" alt="Full size image" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">`, '');
+            modal.querySelector('.modal-save').style.display = 'none';
+            modal.querySelector('.modal-cancel').textContent = 'Close';
+            modal.querySelector('h2').style.display = 'none';
+            modal.classList.remove('hidden');
         }
 
         function showErrorModal(message) {
@@ -414,6 +336,7 @@
             if (!currentUser) return;
             const photoURL = getEffectivePhotoURL(currentUser);
             dom.userAvatar.src = photoURL;
+            dom.mainReplyAvatar.src = photoURL;
             dom.userName.textContent = currentUser.displayName || 'Anonymous User';
             dom.lobbyUserName.textContent = currentUser.displayName;
         }
@@ -525,7 +448,6 @@
             cleanupListeners();
             if (user) {
                 currentUser = user;
-                showScreen('loading');
                 updateUserUI();
                 showLobby();
             } else {
@@ -539,7 +461,7 @@
         function showLobby() {
             currentRoomId = null;
             showScreen('lobby');
-            cleanupListeners(); 
+            cleanupListeners();
             
             dom.lobbyUserName.textContent = currentUser.displayName;
 
@@ -594,6 +516,7 @@
             cleanupListeners(); 
             requestNotificationPermission();
             
+            // Reset state for the new room
             messages = [];
             lastVisibleMessageDoc = null;
             isLoadingMoreMessages = false;
@@ -620,40 +543,62 @@
             messageCheckerInterval = setInterval(() => checkExpiredMessages(roomId), 1000);
         }
 
-        // --- MESSAGES & THREADS LOGIC (WITH CODE EDITOR STYLE) ---
+        // --- MESSAGES & THREADS LOGIC (WITH LAZY LOADING) ---
+        
+        // --- REVISED: UNIFIED REAL-TIME LISTENER ---
         function listenForLatestMessages(roomId) {
             const messagesCol = collection(db, 'rooms', roomId, 'messages');
             const q = query(messagesCol, orderBy("createdAt", "desc"), limit(MESSAGES_PER_PAGE));
 
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach(change => {
-                    const docData = { id: change.doc.id, ...change.doc.data() };
-                    if (change.type === 'removed') {
-                        messages = messages.filter(msg => msg.id !== change.doc.id);
-                    } else {
-                        const index = messages.findIndex(msg => msg.id === change.doc.id);
-                        if (index > -1) {
-                            messages[index] = docData; // Modify
-                        } else {
-                            messages.push(docData); // Add
-                        }
-                    }
-                });
+                const lastKnownMessageTime = messages.length > 0 ? messages[messages.length - 1].createdAt?.toMillis() : 0;
+                
+                const latestMessagesBatch = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Use a Map to merge existing messages with the latest batch, preventing duplicates.
+                const messageMap = new Map();
+                messages.forEach(msg => messageMap.set(msg.id, msg));
+                latestMessagesBatch.forEach(msg => messageMap.set(msg.id, msg));
+                
+                const newMessages = Array.from(messageMap.values());
+                newMessages.sort((a, b) => a.createdAt?.toMillis() - b.createdAt?.toMillis());
+                messages = newMessages;
 
                 if (snapshot.docs.length > 0) {
                     lastVisibleMessageDoc = snapshot.docs[snapshot.docs.length - 1];
                 }
+                
                 allMessagesLoaded = snapshot.docs.length < MESSAGES_PER_PAGE;
 
                 const isScrolledToBottom = dom.messagesContainer.scrollHeight - dom.messagesContainer.clientHeight <= dom.messagesContainer.scrollTop + 150;
+                const isInitialLoad = dom.messagesContainer.children.length <= 1;
+                
                 renderThreads(messages);
-                if (isScrolledToBottom) dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+                
+                if (isInitialLoad || isScrolledToBottom) {
+                    dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+                }
+
+                // Handle notifications for new messages
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const newMessageData = change.doc.data();
+                        if (newMessageData.createdAt?.toMillis() > lastKnownMessageTime) {
+                            if (newMessageData.uid !== currentUser.uid) {
+                                showNotification('System', 'System notification');
+                            }
+                        }
+                    }
+                });
             });
         }
         
+        // --- REVISED: loadMoreMessages ---
         async function loadMoreMessages(roomId) {
             if (isLoadingMoreMessages || allMessagesLoaded) return;
+
             isLoadingMoreMessages = true;
+            dom.messagesContainer.prepend(dom.messagesLoader);
             dom.messagesLoader.classList.remove('hidden');
             dom.messagesLoader.classList.add('flex');
 
@@ -662,6 +607,7 @@
             
             const querySnapshot = await getDocs(q);
             const oldScrollHeight = dom.messagesContainer.scrollHeight;
+
             dom.messagesLoader.classList.add('hidden');
 
             if (querySnapshot.empty) {
@@ -671,75 +617,92 @@
             }
 
             lastVisibleMessageDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
-            const oldMessagesBatch = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // Prepend older messages
-            messages.unshift(...oldMessagesBatch.reverse());
+            const oldMessagesBatch = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const messageMap = new Map();
+            oldMessagesBatch.forEach(msg => messageMap.set(msg.id, msg));
+            messages.forEach(msg => messageMap.set(msg.id, msg));
+
+            const newMessages = Array.from(messageMap.values());
+            newMessages.sort((a, b) => a.createdAt?.toMillis() - b.createdAt?.toMillis());
+            messages = newMessages;
 
             renderThreads(messages);
+
             const newScrollHeight = dom.messagesContainer.scrollHeight;
             dom.messagesContainer.scrollTop = newScrollHeight - oldScrollHeight;
+            
             isLoadingMoreMessages = false;
         }
 
-        let globalLineCounter = 1;
+
         function renderThreads(messagesToRender) {
             const threads = new Map();
-            // Sort messages once before processing
-            const sortedMessages = [...messagesToRender].sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
-
-            sortedMessages.forEach(msg => {
+            messagesToRender.forEach(msg => {
+                if (!msg.createdAt) return; 
                 const threadId = msg.threadId || msg.id;
                 if (!threads.has(threadId)) {
-                    threads.set(threadId, { mainMessage: null, replies: [] });
+                    threads.set(threadId, []);
                 }
-                if (msg.id === threadId) {
-                    threads.get(threadId).mainMessage = msg;
-                } else {
-                    threads.get(threadId).replies.push(msg);
+                threads.get(threadId).push(msg);
+            });
+
+            const sortedThreads = [];
+            threads.forEach((threadMessages, threadId) => {
+                const mainMessage = threadMessages.find(m => m.id === threadId);
+                if (mainMessage) {
+                    const replies = threadMessages.filter(m => m.id !== threadId).sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+                    sortedThreads.push({ mainMessage, replies });
                 }
             });
 
-            const sortedThreads = Array.from(threads.values())
-                .filter(t => t.mainMessage) // Ensure main message exists
-                .sort((a, b) => a.mainMessage.createdAt.toMillis() - b.mainMessage.createdAt.toMillis());
+            sortedThreads.sort((a, b) => a.mainMessage.createdAt.toMillis() - b.mainMessage.createdAt.toMillis());
             
-            globalLineCounter = 1;
             const messagesHTML = sortedThreads.map(({ mainMessage, replies }) => {
-                let threadHTML = renderMessage(mainMessage, globalLineCounter++);
-                if (replies.length > 0) {
-                    threadHTML += `<div class="thread-container mt-2 space-y-2">`;
-                    threadHTML += replies.map(reply => {
-                        const replyHTML = renderMessage(reply, globalLineCounter++);
-                        return replyHTML;
-                    }).join('');
-                    threadHTML += `</div>`;
-                }
-                 threadHTML += `<div class="reply-form-container mt-2 hidden" id="reply-form-${mainMessage.id}">
+                return `
+                    <div class="message-group" id="thread-group-${mainMessage.id}">
+                        ${renderMessage(mainMessage)}
+                        ${replies.length > 0 ? `
+                            <div class="thread-container mt-2 space-y-4">
+                                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="font-medium">${replies.length} ${replies.length > 1 ? 'replies' : 'reply'}</span>
+                                </div>
+                                ${replies.map(reply => renderMessage(reply)).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="reply-form-container pl-12 mt-2 hidden" id="reply-form-${mainMessage.id}">
                            ${createReplyForm(mainMessage.id)}
-                        </div>`;
-                return threadHTML;
+                        </div>
+                    </div>
+                `;
             }).join('');
 
             const currentScrollTop = dom.messagesContainer.scrollTop;
+            const currentScrollHeight = dom.messagesContainer.scrollHeight;
+            const isAtBottom = currentScrollHeight - currentScrollTop === dom.messagesContainer.clientHeight;
+            
             dom.messagesContainer.innerHTML = '';
             dom.messagesContainer.appendChild(dom.messagesLoader);
             dom.messagesContainer.insertAdjacentHTML('beforeend', messagesHTML);
-            dom.messagesContainer.scrollTop = currentScrollTop;
+            
+            if (!isAtBottom) {
+                 dom.messagesContainer.scrollTop = currentScrollTop;
+            }
         }
 
-        function renderMessage(message, lineNumber) {
+        function renderMessage(message) {
             const isCurrentUser = message.uid === currentUser.uid;
             const expiresAt = message.expiresAt ? `data-expires-at="${message.expiresAt.toDate().toISOString()}"` : '';
-            const editedTimestamp = message.editedAt ? `<span class="italic text-xs opacity-60 ml-2">(edited)</span>` : '';
-            const timeStamp = message.createdAt ? message.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
 
             let contentHTML;
             if (message.type === 'gif' || message.type === 'image') {
-                contentHTML = `<div class="mt-1"><img src="${message.text}" alt="Sent image" class="message-image rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" data-src="${message.text}"></div>`;
+                contentHTML = `<img src="${message.text}" alt="Sent image" class="message-image mt-1 rounded-lg max-w-xs md:max-w-sm shadow-md cursor-pointer hover:opacity-80 transition" data-src="${message.text}">`;
             } else {
-                contentHTML = `<p class="message-text inline">${message.text || ''}</p>`;
+                contentHTML = `<p class="text-sm message-text whitespace-pre-wrap text-gray-800 dark:text-gray-200">${message.text || ''}</p>`;
             }
+            
+            const editedTimestamp = message.editedAt ? `<span class="italic text-xs opacity-60 ml-2">(edited)</span>` : '';
 
             let reactionsHTML = '';
             if (message.reactions) {
@@ -755,7 +718,7 @@
             }
             
             const actionsHTML = `
-                <div class="message-actions">
+                <div class="message-actions absolute top-0 right-0 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-sm flex items-center p-0.5">
                     <div class="relative group/picker">
                         <button class="reaction-toggle-button p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600" title="Add reaction" data-message-id="${message.id}">
                              <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -772,29 +735,30 @@
             `;
 
             return `
-            <div class="code-line" id="msg-${message.id}" data-uid="${message.uid}" ${expiresAt}>
-                <div class="line-number">${lineNumber}</div>
-                <div class="line-content">
-                    <div>
-                        <span class="line-user">${message.displayName || 'User'}:</span>
-                        ${message.type === 'text' ? contentHTML : ''}
-                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${timeStamp}</span>
-                        ${editedTimestamp}
+            <div class="message flex gap-3 group" id="msg-${message.id}" data-uid="${message.uid}" ${expiresAt}>
+                <img src="${getEffectivePhotoURL({ uid: message.uid, displayName: message.displayName, photoURL: message.photoURL })}" alt="Avatar" class="w-9 h-9 rounded-full shadow-sm shrink-0">
+                <div class="flex-1">
+                    <div class="relative inline-block">
+                        <div class="flex items-center gap-2">
+                            <p class="font-bold text-sm text-gray-900 dark:text-white">${message.displayName || 'User'}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${message.createdAt ? message.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}</p>
+                            ${editedTimestamp}
+                        </div>
+                        ${contentHTML}
+                        ${reactionsHTML}
                         ${actionsHTML}
                     </div>
-                    ${message.type !== 'text' ? contentHTML : ''}
-                    ${reactionsHTML}
                 </div>
             </div>`;
         }
 
-
         function createReplyForm(threadId) {
             return `
                 <form class="reply-form flex items-start space-x-3" data-thread-id="${threadId}">
+                    <img src="${getEffectivePhotoURL(currentUser)}" class="w-8 h-8 rounded-full shrink-0" alt="Your avatar">
                     <div class="flex-1">
                         <div class="border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-primary-500 bg-white dark:bg-gray-800">
-                            <textarea name="reply-input" placeholder="Reply to thread... (Ctrl+V to paste image)" class="w-full p-2 bg-transparent text-gray-800 dark:text-white focus:outline-none resize-none text-sm" rows="1"></textarea>
+                            <textarea name="reply-input" placeholder="Reply to thread..." class="w-full p-2 bg-transparent text-gray-800 dark:text-white focus:outline-none resize-none text-sm" rows="1"></textarea>
                         </div>
                         <div class="flex justify-end items-center mt-2 space-x-2">
                             <button type="button" class="cancel-reply-btn text-xs font-bold text-gray-600 dark:text-gray-400 hover:underline">Cancel</button>
@@ -806,10 +770,16 @@
         }
 
         function checkExpiredMessages(roomId) {
-            document.querySelectorAll('.code-line[data-expires-at]').forEach(el => {
+            document.querySelectorAll('.message[data-expires-at]').forEach(el => {
                 if (new Date() > new Date(el.dataset.expiresAt)) {
                     el.classList.add('fading-out');
-                    setTimeout(() => el.remove(), 300);
+                    setTimeout(() => {
+                        const group = el.closest('.message-group');
+                        el.remove();
+                        if (group && group.querySelectorAll('.message').length === 0) {
+                            group.remove();
+                        }
+                    }, 300);
                     deleteDoc(doc(db, 'rooms', roomId, 'messages', el.id.replace('msg-', ''))).catch(console.error);
                 }
             });
@@ -821,7 +791,7 @@
             const messageData = {
                 uid: currentUser.uid, 
                 displayName: currentUser.displayName, 
-                photoURL: currentUser.photoURL,
+                photoURL: getEffectivePhotoURL(currentUser),
                 text: text, 
                 createdAt: serverTimestamp(),
                 expiresAt: threadId ? null : (parseInt(dom.timerSelect.value) > 0 ? Timestamp.fromDate(new Date(Date.now() + parseInt(dom.timerSelect.value))) : null),
@@ -843,16 +813,37 @@
         async function toggleReaction(messageId, emoji) {
             if (!currentRoomId || !currentUser) return;
             const messageRef = doc(db, 'rooms', currentRoomId, 'messages', messageId);
-            const messageSnap = await getDoc(messageRef);
-            if (!messageSnap.exists()) return;
-            const reactions = messageSnap.data().reactions || {};
-            const uids = reactions[emoji] || [];
-            const userIndex = uids.indexOf(currentUser.uid);
-            if (userIndex > -1) uids.splice(userIndex, 1);
-            else uids.push(currentUser.uid);
-            if (uids.length === 0) delete reactions[emoji];
-            else reactions[emoji] = uids;
-            await updateDoc(messageRef, { reactions: reactions });
+
+            try {
+                const messageSnap = await getDoc(messageRef);
+                if (!messageSnap.exists()) {
+                    console.error("Message does not exist!");
+                    return;
+                }
+
+                const reactions = messageSnap.data().reactions || {};
+                const uids = reactions[emoji] || [];
+                const userIndex = uids.indexOf(currentUser.uid);
+
+                if (userIndex > -1) {
+                    uids.splice(userIndex, 1);
+                } else {
+                    uids.push(currentUser.uid);
+                }
+
+                if (uids.length === 0) {
+                    delete reactions[emoji];
+                } else {
+                    reactions[emoji] = uids;
+                }
+
+                await updateDoc(messageRef, {
+                    reactions: reactions
+                });
+
+            } catch (error) {
+                console.error("Error toggling reaction: ", error);
+            }
         }
         
         // --- GIPHY & IMAGE LOGIC ---
@@ -868,9 +859,13 @@
 
             const searchGiphy = async (term) => {
                 resultsContainer.innerHTML = '<div class="col-span-2 spinner mx-auto"></div>';
-                const response = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(term)}&limit=20&rating=g`);
-                const json = await response.json();
-                resultsContainer.innerHTML = json.data.map(gif => `<img src="${gif.images.fixed_height_small.url}" data-full-url="${gif.images.original.url}" class="cursor-pointer hover:opacity-75 rounded-md">`).join('');
+                try {
+                    const response = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(term)}&limit=20&rating=g`);
+                    const json = await response.json();
+                    resultsContainer.innerHTML = json.data.map(gif => `<img src="${gif.images.fixed_height_small.url}" data-full-url="${gif.images.original.url}" class="cursor-pointer hover:opacity-75 rounded-md">`).join('');
+                } catch (error) {
+                    resultsContainer.innerHTML = '<p class="text-red-500">Could not fetch GIFs.</p>';
+                }
             };
             
             searchInput.addEventListener('input', () => {
@@ -900,17 +895,18 @@
             try {
                 const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
                 const result = await response.json();
+
                 if (result.success) {
                     await sendMessage(result.data.url, 'image', threadId);
                 } else {
-                    showInfoModal('Image Upload Failed', result.error?.message || 'Please try again.');
+                    alert('Image upload failed. Please try again.');
                 }
             } catch (error) {
-                showInfoModal('Upload Error', 'An error occurred during image upload.');
+                alert('An error occurred during image upload.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalContent;
-                dom.imageInput.value = '';
+                dom.imageInput.value = ''; // Reset file input
             }
         }
 
@@ -922,6 +918,7 @@
                 picker.className = 'fixed z-30 flex gap-1 bg-white dark:bg-gray-800 p-1.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 transition-opacity pointer-events-none';
                 picker.innerHTML = AVAILABLE_REACTIONS.map(emoji => `<button class="reaction-picker-emoji p-1 text-xl hover:scale-125 transition-transform">${emoji}</button>`).join('');
                 document.body.appendChild(picker);
+
                 picker.addEventListener('click', (e) => {
                     const btn = e.target.closest('.reaction-picker-emoji');
                     if (btn) {
@@ -929,6 +926,7 @@
                         hideReactionPicker(true);
                     }
                 });
+                
                 picker.addEventListener('mouseenter', () => clearTimeout(picker.hideTimeout));
                 picker.addEventListener('mouseleave', () => hideReactionPicker());
             }
@@ -945,8 +943,13 @@
             let picker = document.getElementById('reaction-picker-global');
             if (picker) {
                 clearTimeout(picker.hideTimeout);
-                if(immediate) picker.classList.add('opacity-0', 'pointer-events-none');
-                else picker.hideTimeout = setTimeout(() => picker.classList.add('opacity-0', 'pointer-events-none'), 500);
+                if(immediate) {
+                    picker.classList.add('opacity-0', 'pointer-events-none');
+                } else {
+                    picker.hideTimeout = setTimeout(() => {
+                        picker.classList.add('opacity-0', 'pointer-events-none');
+                    }, 500);
+                }
             }
         }
 
@@ -957,7 +960,9 @@
             dom.backToLobbyButton.addEventListener('click', showLobby);
 
             dom.messagesContainer.addEventListener('scroll', () => {
-                if (dom.messagesContainer.scrollTop === 0) loadMoreMessages(currentRoomId);
+                if (dom.messagesContainer.scrollTop === 0) {
+                    loadMoreMessages(currentRoomId);
+                }
             });
 
             dom.createRoomButton.addEventListener('click', () => {
@@ -981,33 +986,30 @@
                 if (!text) return;
 
                 dom.submitButton.disabled = true;
+                let textToSend = text;
                 if (isTranslateEnabled) {
-                    translateText(text).then(translated => sendMessage(translated, 'text'))
-                    .catch(() => sendMessage(text, 'text'))
-                    .finally(() => dom.submitButton.disabled = false);
+                    translateText(text).then(translated => {
+                        sendMessage(translated, 'text');
+                    }).catch(() => {
+                        sendMessage(text, 'text');
+                    }).finally(() => {
+                        dom.messageInput.value = '';
+                        dom.messageInput.style.height = 'auto';
+                        dom.submitButton.disabled = false;
+                    });
                 } else {
-                    sendMessage(text, 'text').finally(() => dom.submitButton.disabled = false);
-                }
-                dom.messageInput.value = '';
-                dom.messageInput.style.height = 'auto';
-            });
-            
-            dom.messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    dom.messageForm.requestSubmit();
+                    sendMessage(text, 'text').then(() => {
+                        dom.messageInput.value = '';
+                        dom.messageInput.style.height = 'auto';
+                        dom.submitButton.disabled = false;
+                    });
                 }
             });
 
-            dom.messageInput.addEventListener('paste', (e) => {
-                const items = (e.clipboardData || window.clipboardData).items;
-                for (const item of items) {
-                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        e.preventDefault();
-                        const file = item.getAsFile();
-                        uploadAndSendImage(file);
-                        return;
-                    }
+            dom.messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+                    e.preventDefault();
+                    dom.messageForm.requestSubmit();
                 }
             });
 
@@ -1018,12 +1020,17 @@
 
             dom.messagesContainer.addEventListener('mouseover', (e) => {
                 const reactionToggleBtn = e.target.closest('.reaction-toggle-button');
-                if (reactionToggleBtn) showReactionPicker(reactionToggleBtn.dataset.messageId, reactionToggleBtn);
+                if (reactionToggleBtn) {
+                   showReactionPicker(reactionToggleBtn.dataset.messageId, reactionToggleBtn);
+                }
             });
             dom.messagesContainer.addEventListener('mouseout', (e) => {
                 const reactionToggleBtn = e.target.closest('.reaction-toggle-button');
-                if (reactionToggleBtn) hideReactionPicker();
+                if (reactionToggleBtn) {
+                   hideReactionPicker();
+                }
             });
+
 
             dom.messagesContainer.addEventListener('click', async (e) => {
                 const replyBtn = e.target.closest('.reply-button');
@@ -1032,20 +1039,27 @@
                     const replyFormContainer = document.getElementById(`reply-form-${threadId}`);
                     if (replyFormContainer) {
                         replyFormContainer.classList.toggle('hidden');
-                        if (!replyFormContainer.classList.contains('hidden')) replyFormContainer.querySelector('textarea').focus();
+                        if (!replyFormContainer.classList.contains('hidden')) {
+                            replyFormContainer.querySelector('textarea').focus();
+                        }
                     }
                 }
 
                 const reactionBtn = e.target.closest('.reaction-chip');
-                if (reactionBtn) toggleReaction(reactionBtn.dataset.messageId, reactionBtn.dataset.emoji);
+                if (reactionBtn) {
+                    toggleReaction(reactionBtn.dataset.messageId, reactionBtn.dataset.emoji);
+                }
                 
                 const editMsgBtn = e.target.closest('.edit-message-btn');
                 if (editMsgBtn) {
                     const modal = createModal('edit-message-modal', 'Edit Message', `<textarea id="edit-message-input" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white" rows="4"></textarea>`, 'Save Changes');
                     modal.querySelector('#edit-message-input').value = decodeURIComponent(editMsgBtn.dataset.text);
+                    
                     modal.querySelector('.modal-save').addEventListener('click', async () => {
                         const newText = modal.querySelector('#edit-message-input').value.trim();
-                        if (newText) await updateDoc(doc(db, 'rooms', currentRoomId, 'messages', editMsgBtn.dataset.messageId), { text: newText, editedAt: serverTimestamp() });
+                        if (newText) {
+                            await updateDoc(doc(db, 'rooms', currentRoomId, 'messages', editMsgBtn.dataset.messageId), { text: newText, editedAt: serverTimestamp() });
+                        }
                         modal.remove();
                     });
                     modal.classList.remove('hidden');
@@ -1053,21 +1067,11 @@
 
                 const deleteMsgBtn = e.target.closest('.delete-message-btn');
                 if (deleteMsgBtn) {
-                    const messageIdToDelete = deleteMsgBtn.dataset.messageId;
                     const modal = createModal('delete-message-modal', 'Delete Message?', `<p class="text-gray-600 dark:text-gray-300">Are you sure you want to delete this message? This cannot be undone.</p>`, 'Delete Forever');
                     modal.querySelector('.modal-save').classList.replace('bg-primary-600', 'bg-red-600');
                     modal.querySelector('.modal-save').addEventListener('click', async () => {
-                        try {
-                            await deleteDoc(doc(db, 'rooms', currentRoomId, 'messages', messageIdToDelete));
-                            // FIX: Manually update UI for immediate feedback, onSnapshot will handle the rest.
-                            messages = messages.filter(m => m.id !== messageIdToDelete);
-                            renderThreads(messages);
-                        } catch (error) {
-                            console.error("Error deleting message:", error);
-                            showInfoModal("Error", "Could not delete message.");
-                        } finally {
-                             modal.remove();
-                        }
+                        await deleteDoc(doc(db, 'rooms', currentRoomId, 'messages', deleteMsgBtn.dataset.messageId));
+                        modal.remove();
                     });
                     modal.classList.remove('hidden');
                 }
@@ -1076,30 +1080,19 @@
                 if (image) showImageModal(image.dataset.src);
 
                 const cancelReplyBtn = e.target.closest('.cancel-reply-btn');
-                if (cancelReplyBtn) cancelReplyBtn.closest('.reply-form-container').classList.add('hidden');
+                if (cancelReplyBtn) {
+                    cancelReplyBtn.closest('.reply-form-container').classList.add('hidden');
+                }
             });
             
             dom.messagesContainer.addEventListener('keydown', (e) => {
-                const replyTextarea = e.target.closest('textarea[name="reply-input"]');
-                if (replyTextarea && e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    const form = replyTextarea.closest('form');
-                    if (form) form.requestSubmit();
-                }
-            });
-
-            dom.messagesContainer.addEventListener('paste', (e) => {
-                const replyTextarea = e.target.closest('textarea[name="reply-input"]');
-                if (replyTextarea) {
-                    const items = (e.clipboardData || window.clipboardData).items;
-                    for (const item of items) {
-                        if (item.kind === 'file' && item.type.startsWith('image/')) {
-                            e.preventDefault();
-                            const file = item.getAsFile();
-                            const threadId = replyTextarea.closest('form').dataset.threadId;
-                            uploadAndSendImage(file, threadId);
-                            return;
-                        }
+                if (e.target.matches('.reply-form textarea')) {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+                        e.preventDefault();
+                        e.target.closest('form').requestSubmit();
+                    }
+                    if (e.key === 'Escape') {
+                        e.target.closest('.reply-form-container').classList.add('hidden');
                     }
                 }
             });
@@ -1120,11 +1113,20 @@
 
             document.addEventListener('click', e => {
                 const picker = document.getElementById('reaction-picker-global');
-                if (picker && !picker.contains(e.target) && !e.target.closest('.reaction-toggle-button')) hideReactionPicker(true);
+                if (picker && !picker.contains(e.target) && !e.target.closest('.reaction-toggle-button')) {
+                   hideReactionPicker(true);
+                }
+
                 const enterBtn = e.target.closest('.enter-room-btn');
                 if (enterBtn) enterRoom(enterBtn.dataset.id);
+                
                 const requestBtn = e.target.closest('.request-join-btn');
-                if (requestBtn) updateDoc(doc(db, 'rooms', requestBtn.dataset.id), { pendingRequests: arrayUnion({ uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL }) });
+                if (requestBtn) {
+                    updateDoc(doc(db, 'rooms', requestBtn.dataset.id), { 
+                        pendingRequests: arrayUnion({ uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL }) 
+                    });
+                }
+                
                 const deleteRoomBtn = e.target.closest('.delete-room-btn');
                 if (deleteRoomBtn) {
                     const modal = createModal('delete-room-modal', 'Are you sure?', `<p class="text-gray-600 dark:text-gray-300 mb-4">This will permanently delete the <strong>${deleteRoomBtn.dataset.name}</strong> room and all its messages. This action cannot be undone.</p>`, 'Delete Forever');
